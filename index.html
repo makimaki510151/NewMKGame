@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>High-Speed Hack & Slash</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="game-container">
+        <section id="common-party-display">
+            <div id="party-area"></div>
+        </section>
+
+        <hr>
+
+        <section id="scene-title">
+            <div id="party-area"></div>
+            <button id="btn-go-adventure">冒険に出かける</button>
+        </section>
+
+        <section id="scene-map-select" class="hidden">
+            <h2>マップ選択</h2>
+            <div id="map-list"></div>
+            <button class="btn-back">戻る</button>
+        </section>
+
+        <section id="scene-battle" class="hidden">
+            <div id="current-map-info"></div>
+            <div id="battle-area">
+                <div id="enemy-display"></div>
+                <div id="battle-controls">
+                    <button id="btn-attack-hold" class="large-button">PUSH & HOLD TO FIGHT</button>
+                </div>
+                <div id="battle-log"></div>
+            </div>
+            <button class="btn-back">拠点に戻る</button>
+        </section>
+    </div>
+    <script src="js/data.js"></script>
+    <script src="js/skillManager.js"></script>
+    <script src="js/charaModel.js"></script>
+    <script src="js/battleSystem.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>

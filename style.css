@@ -1,0 +1,108 @@
+#party-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+    background: #f0f0f0;
+}
+
+.chara-status-card {
+    border: 2px solid #333;
+    padding: 10px;
+    background: #fff;
+    min-width: 200px;
+    border-radius: 4px;
+}
+
+.chara-header {
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 5px;
+    padding-bottom: 3px;
+}
+
+.chara-stats {
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#map-list {
+    display: grid;
+    gap: 10px;
+    padding: 20px;
+}
+
+#battle-log {
+    height: 300px;
+    overflow-y: auto;
+    background: #000;
+    color: #0f0;
+    font-family: monospace;
+    padding: 10px;
+}
+
+#battle-controls {
+    text-align: center;
+    margin: 15px 0;
+}
+
+.large-button {
+    width: 80%;
+    padding: 20px;
+    font-size: 1.2em;
+    font-weight: bold;
+    background-color: #c00;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    /* テキスト選択を防止 */
+    touch-action: manipulation;
+}
+
+.large-button:active {
+    background-color: #f00;
+    transform: scale(0.98);
+}
+
+#battle-log {
+    height: 300px;
+    /* 全ログを表示するために十分な高さ */
+    overflow-y: auto;
+    background: #111;
+    color: #0f0;
+    /* ハッカー/レトロゲーム風の緑文字 */
+    font-family: 'Courier New', monospace;
+    padding: 10px;
+    border: 2px solid #444;
+    text-align: left;
+    /* 左揃えに戻す */
+    line-height: 1.4;
+}
+
+#battle-log div {
+    margin-bottom: 2px;
+    border-bottom: 1px solid #222;
+}
+
+.chara-exp {
+    font-size: 0.8em;
+    margin: 5px 0;
+}
+
+.exp-bar-bg {
+    width: 100%;
+    height: 4px;
+    background: #ccc;
+    margin-top: 2px;
+}
+
+.exp-bar-fill {
+    height: 100%;
+    background: #4caf50;
+    transition: width 0.3s;
+}
