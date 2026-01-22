@@ -1,225 +1,245 @@
-#party-area {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+/* --- 基本設定 & 変数 --- */
+:root {
+    --bg-dark: #0f0f13;
+    --card-bg: #1e1e26;
+    --accent: #4a9eff;
+    --danger: #ff4d4d;
+    --text-main: #f0f0f5;
+    --text-sub: #a0a0b0;
+    --border: #333340;
+    --radius: 12px;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
+    /* 画面全体のスクロールを許可 */
+    overflow-y: auto;
+}
+
+hr { display: none; }
+
+#game-container {
+    max-width: 1000px;
+    margin: 0 auto;
     padding: 10px;
-    background: #f0f0f0;
+    padding-bottom: 100px; /* 下部ボタン用の余白 */
+}
+
+.hidden { display: none !important; }
+
+/* --- パーティ表示 --- */
+#party-area {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 15px;
 }
 
 .chara-status-card {
-    border: 2px solid #333;
-    padding: 10px;
-    background: #fff;
-    min-width: 200px;
-    border-radius: 4px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
 }
 
 .chara-header {
-    border-bottom: 1px solid #ccc;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--accent);
     margin-bottom: 5px;
-    padding-bottom: 3px;
 }
 
 .chara-stats {
-    font-family: monospace;
-    font-size: 0.9em;
+    font-family: 'Consolas', monospace;
+    font-size: 0.9rem;
+    color: #ccc;
 }
 
-.hidden {
-    display: none !important;
-}
-
-#map-list {
-    display: grid;
-    gap: 10px;
-    padding: 20px;
-}
-
-#battle-log {
-    height: 300px;
-    overflow-y: auto;
-    background: #000;
-    color: #0f0;
-    font-family: monospace;
-    padding: 10px;
-}
-
-#battle-controls {
-    text-align: center;
-    margin: 15px 0;
-}
-
-.large-button {
-    width: 80%;
-    padding: 20px;
-    font-size: 1.2em;
-    font-weight: bold;
-    background-color: #c00;
-    color: white;
+/* --- ボタン共通 (デフォルト排除) --- */
+button {
+    appearance: none;
     border: none;
-    border-radius: 8px;
     cursor: pointer;
-    user-select: none;
-    /* テキスト選択を防止 */
-    touch-action: manipulation;
+    font-family: inherit;
+    font-weight: bold;
+    border-radius: var(--radius);
+    transition: transform 0.1s;
 }
 
-.large-button:active {
-    background-color: #f00;
+button:active {
     transform: scale(0.98);
 }
 
-#battle-log {
-    height: 300px;
-    /* 全ログを表示するために十分な高さ */
-    overflow-y: auto;
-    background: #111;
-    color: #0f0;
-    /* ハッカー/レトロゲーム風の緑文字 */
-    font-family: 'Courier New', monospace;
-    padding: 10px;
-    border: 2px solid #444;
-    text-align: left;
-    /* 左揃えに戻す */
-    line-height: 1.4;
-}
-
-#battle-log div {
-    margin-bottom: 2px;
-    border-bottom: 1px solid #222;
-}
-
-.chara-exp {
-    font-size: 0.8em;
-    margin: 5px 0;
-}
-
-.exp-bar-bg {
-    width: 100%;
-    height: 6px;
-    background: #333;
-    margin-top: 4px;
-    border-radius: 3px;
-    overflow: hidden;
-    /* はみ出し防止 */
-}
-
-.exp-bar-fill {
-    height: 100%;
-    background: #4caf50;
-    transition: width 0.3s ease-in-out;
-}
-
-.reincarnate-btn {
-    margin-top: 10px;
-    width: 100%;
-    background-color: #ffd700;
-    color: #000;
-    border: 2px solid #b8860b;
-    font-weight: bold;
-    cursor: pointer;
-    padding: 5px;
-}
-
-.reincarnate-btn:hover {
-    background-color: #fff;
-}
-
-#equip-container {
-    display: flex;
-    gap: 20px;
-    padding: 20px;
-}
-
-#equip-party-list,
-#equip-inventory-list {
-    flex: 1;
-    background: #fff;
-    border: 1px solid #ccc;
-    padding: 10px;
-    height: 400px;
-    overflow-y: auto;
-}
-
-.equip-chara-card {
-    border: 1px solid #ddd;
-    margin-bottom: 10px;
-    padding: 10px;
-    cursor: pointer;
-}
-
-.equip-chara-card.selected {
-    border-color: #007bff;
-    background-color: #e7f3ff;
-}
-
-.equip-chara-card button {
-    margin: 5px;
-    padding: 5px 10px;
-}
-
+/* メインメニュー */
 .main-menu {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    align-items: center;
-    padding: 20px;
+    padding-top: 30px;
 }
 
 .menu-button {
-    width: 250px;
-    padding: 15px;
-    font-size: 1.1em;
-    cursor: pointer;
-    background: #444;
-    color: white;
-    border: 2px solid #666;
-    border-radius: 4px;
+    width: 100%;
+    height: 65px;
+    font-size: 1.2rem;
+    background: var(--card-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border);
 }
 
-.menu-button:hover {
-    background: #666;
-}
-
-.inventory-item {
+/* --- マップ選択 --- */
+#map-list {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #eee;
-    padding: 8px;
-    font-size: 0.9em;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.skill-info {
-    flex: 1;
-}
-
-.skill-actions button {
-    margin-left: 4px;
-    padding: 2px 8px;
-    cursor: pointer;
-}
-
-/* style.css */
-.skill-slot-container {
-    display: flex;
-    gap: 5px;
-    margin-top: 5px;
-}
-
-.fragment-slot {
-    width: 20px;
-    height: 20px;
-    border: 1px dashed #666;
-    background: #eee;
-    font-size: 10px;
+.map-item {
+    width: 100%;
+    height: 70px;
+    font-size: 1.2rem;
+    background: linear-gradient(90deg, #2d2d3a, #1e1e26);
+    color: var(--text-main);
+    border-left: 6px solid var(--accent);
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
 }
 
-.fragment-slot.filled {
-    border: 1px solid #007bff;
-    background: #cce5ff;
+/* --- スキル装備画面 (スクロール修正 & かけら視認性向上) --- */
+#equip-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* リスト部分がスクロールするように修正 */
+#equip-party-list, #equip-inventory-list {
+    width: 100%;
+}
+
+.inventory-item {
+    background: #252530;
+    margin-bottom: 15px;
+    padding: 15px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+}
+
+.skill-info {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    display: block;
+    color: var(--accent);
+}
+
+/* かけら・スロットのバグ修正 (背景白/文字黒で固定) */
+.fragment-slot, .fragment-item {
+    background: #ffffff !important; /* 真っ白背景 */
+    color: #000000 !important;      /* 真っ黒文字 */
+    padding: 10px;
+    margin: 6px 0;
+    border-radius: 6px;
+    font-weight: 800;               /* 太字で読みやすく */
+    font-size: 0.95rem;
+    border: 2px solid #ccc;
+    display: block;
+}
+
+/* 装備画面ボタンの大型化 */
+.skill-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.skill-actions button {
+    height: 55px;
+    font-size: 1rem;
+    background: #333;
+    color: #fff;
+}
+
+/* --- バトル画面 --- */
+#battle-log {
+    height: 300px;
+    background: #000;
+    color: #4af626;
+    padding: 12px;
+    font-size: 1rem;
+    border-radius: var(--radius);
+    overflow-y: auto; /* ログのスクロールを保証 */
+    border: 1px solid var(--border);
+}
+
+#btn-attack-hold {
+    width: 100%;
+    height: 100px;
+    font-size: 1.5rem;
+    background: linear-gradient(135deg, #d32f2f, #b71c1c);
+    color: white;
+    border-radius: 50px;
+    box-shadow: 0 6px 0 #7f0000;
+    margin: 15px 0;
+}
+
+/* --- 戻るボタン (スマホ・PC共通で押しやすく) --- */
+.btn-back {
+    width: 100%;
+    height: 60px;
+    font-size: 1.2rem;
+    background: #444;
+    color: white;
+    margin-top: 20px;
+}
+
+/* --- スマホ特化設定 --- */
+@media (max-width: 768px) {
+    #party-area {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .btn-back {
+        position: fixed;
+        bottom: 15px;
+        left: 5%;
+        width: 90%;
+        z-index: 1000;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+    }
+
+    /* 戻るボタンが固定されるため、コンテンツ末尾に余白を追加 */
+    #scene-equip, #scene-map-select, #scene-battle {
+        padding-bottom: 80px;
+    }
+}
+
+/* --- PC特化設定 --- */
+@media (min-width: 769px) {
+    #equip-container {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    #map-list {
+        grid-template-columns: repeat(3, 1fr);
+        display: grid;
+    }
+
+    .menu-button {
+        max-width: 400px;
+        margin: 0 auto;
+    }
 }

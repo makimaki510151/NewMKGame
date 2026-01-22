@@ -25,9 +25,7 @@ const MASTER_DATA = {
         berserk: { name: "諸刃", desc: "威力+50%/自傷5%", calc: (s) => { s.power *= 1.5; s.selfDamage = (s.selfDamage || 0) + 0.05 } },
         heavy: { name: "鈍重", desc: "威力+30%/CT+20%", calc: (s) => { s.power *= 1.3; s.coolTime *= 1.2 } },
         meditation: { name: "瞑想", desc: "威力-20%/自分回復", calc: (s) => { s.power *= 0.8; s.healSelf = true } },
-        luck: { name: "幸運", desc: "ドロップ率+5%", calc: (s) => s.dropBonus = (s.dropBonus || 0) + 0.05 },
-        quick_step: { name: "軽業", desc: "SPD+5", calc: (s) => s.spdBonus = (s.spdBonus || 0) + 5 },
-        echo: { name: "共鳴", desc: "同じスキル数×5%強化", calc: (s) => s.resonate = true }
+        quick_step: { name: "軽業", desc: "SPD+5", calc: (s) => s.spdBonus = (s.spdBonus || 0) + 5 }
     },
     // スキル使用条件の定義
     SKILL_CONDITIONS: [
@@ -100,7 +98,5 @@ const MASTER_DATA = {
 MASTER_DATA.FRAGMENT_DROP_CHANCE = 0.1; // 10%でドロップ
 
 MASTER_DATA.FRAGMENT_GROUPS = {
-    common: ["power_up", "ct_down", "quick_step","life_steal", "meditation", "heavy","double_cast", "berserk", "echo", "luck"],
-    rare: [],
-    legend: []
+    group1: ["power_up", "ct_down", "quick_step", "life_steal", "meditation", "heavy", "double_cast", "berserk"],
 };

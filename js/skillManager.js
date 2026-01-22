@@ -1,5 +1,5 @@
 class SkillManager {
-    constructor(savedInventory = null) {
+    constructor(savedInventory = null, savedFragments = null) {
         // inventory[skillId][level] = count という二次元構造にします
         this.inventory = savedInventory || {
             attack: { 0: 999 },
@@ -11,7 +11,6 @@ class SkillManager {
     }
 
     dropFragment() {
-        const effects = Object.keys(MASTER_DATA.FRAGMENT_EFFECTS);
         const fragment = {
             uniqueId: Date.now() + Math.random(),
             name: "輝きのかけら",
@@ -21,7 +20,11 @@ class SkillManager {
         // 1〜3個の効果を抽選
         const count = Math.floor(Math.random() * 3) + 1;
         for (let i = 0; i < count; i++) {
-            const effect = effects[Math.floor(Math.random() * effects.length)];
+            // グループを統合して抽選
+            const allEffects = [
+                ...MASTER_DATA.FRAGMENT_GROUPS.group1
+            ];
+            const effect = allEffects[Math.floor(Math.random() * allEffects.length)];
             fragment.effects.push(effect);
         }
         this.fragments.push(fragment);
