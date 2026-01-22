@@ -21,7 +21,9 @@ const MASTER_DATA = {
     SKILL_CONDITIONS: [
         { id: "always", name: "常に使う" },
         { id: "hp_low", name: "HP50%以下で使う" },
-        { id: "hp_high", name: "HP51%以上で使う" }
+        { id: "hp_high", name: "HP51%以上で使う" },
+        { id: "enemy_many", name: "敵が3体以上いるとき使う" },
+        { id: "ally_dead", name: "味方が戦闘不能のとき使う" }
     ],
     MAPS: [
         {
@@ -62,22 +64,22 @@ const MASTER_DATA = {
             skills: ["attack", "slash", "magic_bullet", "heal"]
         },
         slime: {
-            id: "slime", name: "スライム", hp: 50, pAtk: 10, pDef: 5, mAtk: 5, mDef: 5, spd: 8, exp: 10,
+            id: "slime", name: "スライム", hp: 50, pAtk: 10, pDef: 5, mAtk: 5, mDef: 5, spd: 8, exp: 5,
             drop: { id: "slash", rate: 0.01 },
             skills: ["attack"] // 敵が使うスキルのリスト
         },
         goblin: {
-            id: "goblin", name: "ゴブリン", hp: 120, pAtk: 15, pDef: 10, mAtk: 5, mDef: 5, spd: 12, exp: 25,
+            id: "goblin", name: "ゴブリン", hp: 120, pAtk: 15, pDef: 10, mAtk: 5, mDef: 5, spd: 12, exp: 5,
             drop: { id: "slash", rate: 0.02 },
             skills: ["attack", "slash"] // 斬撃も使えるようにしておく
         },
         bat: {
-            id: "bat", name: "コウモリ", hp: 40, pAtk: 12, pDef: 3, mAtk: 5, mDef: 10, spd: 20, exp: 10,
+            id: "bat", name: "コウモリ", hp: 40, pAtk: 12, pDef: 3, mAtk: 5, mDef: 10, spd: 20, exp: 5,
             drop: { id: "magic_bullet", rate: 0.02 },
             skills: ["attack", "magic_bullet"]
         },
         skeleton: {
-            id: "skeleton", name: "スケルトン", hp: 120, pAtk: 20, pDef: 15, mAtk: 0, m_def: 0, spd: 5, exp: 10,
+            id: "skeleton", name: "スケルトン", hp: 120, pAtk: 20, pDef: 15, mAtk: 0, m_def: 0, spd: 5, exp: 5,
             drop: { id: "slash", rate: 0.05 },
             skills: ["attack", "slash"]
         }

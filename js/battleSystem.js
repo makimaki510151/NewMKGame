@@ -67,24 +67,17 @@ class BattleSystem {
         const isPlayer = actor.type === 'player';
         const chara = actor.data;
 
-        // ターゲット選定
-        const targets = allUnits.filter(u =>
-            (isPlayer ? u.type === 'enemy' : u.type === 'player') &&
-            (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0)
-        );
-        if (targets.length === 0) return { log: "" };
-        const target = targets[Math.floor(Math.random() * targets.length)];
-
+        // --- 1. まず使用するスキルを決める ---
         let selectedSkillId = "attack";
         let selectedSkillLevel = 0;
 
         if (isPlayer) {
-            // プレイヤーのスキル選択（既存ロジック）
+            // プレイヤーのスキル選択
             for (let i = chara.skills.length - 1; i >= 0; i--) {
                 const sInfo = chara.skills[i];
                 const sData = chara.getSkillEffectiveData(sInfo);
                 const isAvailable = (sInfo.currentCoolDown || 0) <= 0;
-                const isConditionMet = this.checkSkillCondition(chara, sInfo.condition || 'always');
+                const isConditionMet = this.checkSkillCondition(chara, sInfo.condition || 'always', allUnits);
 
                 if (isAvailable && isConditionMet) {
                     selectedSkillId = sInfo.id;
@@ -96,9 +89,7 @@ class BattleSystem {
             chara.updateCoolDowns();
         } else {
             // 敵のスキル選択
-            // chara.skills が定義されている場合は、ランダムまたは順に選択（現在は簡易的にランダム）
             if (chara.skills && chara.skills.length > 0) {
-                // attack以外のスキルがある場合、一定確率で使うなどのロジックも可能
                 selectedSkillId = chara.skills[Math.floor(Math.random() * chara.skills.length)];
             }
         }
@@ -108,50 +99,66 @@ class BattleSystem {
         if (isPlayer) {
             skill = chara.getSkillEffectiveData({ id: selectedSkillId, level: selectedSkillLevel });
         } else {
-            // 敵はレベル0として MASTER_DATA から取得
             skill = MASTER_DATA.SKILLS[selectedSkillId] || MASTER_DATA.SKILLS.attack;
         }
 
-        // ステータス参照の統一
-        const aStats = isPlayer ? chara.stats : chara;
-        const dStats = isPlayer ? target.data : target.data.stats;
-
-        // ダメージ計算
-        let dmg = 0;
-        if (skill.type === "physical") {
-            dmg = Math.max(1, (aStats.pAtk * skill.power) - (dStats.pDef * 0.5));
-        } else if (skill.type === "magical") {
-            dmg = Math.max(1, (aStats.mAtk * skill.power) - (dStats.mDef * 0.5));
-        } else if (skill.type === "heal") {
-            const healAmt = Math.floor(aStats.mAtk * skill.power);
-            if (isPlayer) {
-                aStats.hp = Math.min(chara.currentMaxHp, aStats.hp + healAmt);
-            } else {
-                // 敵が自分を回復する場合（簡易実装）
-                chara.hp = Math.min(chara.maxHp || chara.hp, chara.hp + healAmt);
-            }
-            return { log: `${isPlayer ? chara.name : chara.name}の[${skill.name}]！ HPが ${healAmt} 回復した。` };
-        }
-
-        dmg = Math.floor(dmg);
-        if (isPlayer) {
-            target.data.hp -= dmg;
+        // --- 2. スキルのタイプに合わせてターゲットを選定する ---
+        let targets;
+        if (skill.type === "heal") {
+            // 回復スキルの場合：自分と同じ陣営（isPlayerならplayer）の生存者
+            targets = allUnits.filter(u =>
+                u.type === actor.type &&
+                (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0)
+            );
         } else {
-            target.data.stats.hp -= dmg;
+            // 攻撃スキルの場合：自分と違う陣営（isPlayerならenemy）の生存者
+            targets = allUnits.filter(u =>
+                u.type !== actor.type &&
+                (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0)
+            );
         }
 
-        const attackerName = chara.name;
-        const targetName = isPlayer ? target.data.name : target.data.name;
+        if (targets.length === 0) return { log: "" };
+        const target = targets[Math.floor(Math.random() * targets.length)];
 
-        return { log: `${attackerName}の[${skill.name}]！ ${targetName}に ${dmg} のダメージ！` };
+        // --- 3. 実行（ダメージ・回復計算） ---
+        const aStats = isPlayer ? chara.stats : chara;
+        // ターゲットがプレイヤーか敵かでステータスの場所が違うのを吸収
+        const dStats = target.type === 'player' ? target.data.stats : target.data;
+        const targetName = target.data.name;
+        const attackerName = chara.name;
+
+        if (skill.type === "heal") {
+            const healAmt = Math.floor(aStats.mAtk * skill.power);
+            const maxHp = target.type === 'player' ? target.data.currentMaxHp : target.data.hp; // 敵の最大HPは現在の値で代用
+
+            dStats.hp = Math.min(maxHp, dStats.hp + healAmt);
+            return { log: `${attackerName}の[${skill.name}]！ ${targetName}のHPが ${healAmt} 回復した。` };
+        } else {
+            // 攻撃
+            let dmg = 0;
+            if (skill.type === "physical") {
+                dmg = Math.max(1, (aStats.pAtk * skill.power) - (dStats.pDef * 0.5));
+            } else if (skill.type === "magical") {
+                dmg = Math.max(1, (aStats.mAtk * skill.power) - (dStats.mDef * 0.5));
+            }
+            dmg = Math.floor(dmg);
+            dStats.hp -= dmg;
+            return { log: `${attackerName}の[${skill.name}]！ ${targetName}に ${dmg} のダメージ！` };
+        }
     }
 
     // スキルの使用条件を判定するヘルパー
-    checkSkillCondition(chara, condition) {
+    checkSkillCondition(chara, condition, allUnits) {
         const hpRate = chara.stats.hp / chara.currentMaxHp;
+        const alivePlayers = allUnits.filter(u => u.type === 'player' && u.data.stats.hp > 0);
+        const aliveEnemies = allUnits.filter(u => u.type === 'enemy' && u.data.hp > 0);
+
         switch (condition) {
             case 'hp_low': return hpRate <= 0.5;
             case 'hp_high': return hpRate > 0.5;
+            case 'enemy_many': return aliveEnemies.length >= 3;
+            case 'ally_dead': return allUnits.filter(u => u.type === 'player' && u.data.stats.hp <= 0).length > 0;
             case 'always': return true;
             default: return true;
         }

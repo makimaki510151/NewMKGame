@@ -12,7 +12,7 @@ class GameController {
 
         this.currentEnemies = [];
         this.lastBattleTime = 0;
-        this.battleInterval = 1000;
+        this.battleInterval = 500;
         this.currentScene = 'title';
         this.currentMap = null;
         this.currentEnemy = null;
@@ -61,9 +61,35 @@ class GameController {
         this.setupSceneEvents();
         this.setupBattleInputs();
         this.updatePartyUI();
+        document.getElementById('btn-change-name').addEventListener('click', () => {
+            this.openNameChangeDialog();
+        });
 
         // ループを開始（一度だけ呼び出す）
         requestAnimationFrame(this.gameLoop);
+    }
+
+    openNameChangeDialog() {
+        // 変更したいキャラクターを選択（複数学命いる場合を想定）
+        const charas = this.party.map((c, i) => `${i + 1}: ${c.name}`).join('\n');
+        const choice = prompt(`名前を変えるキャラの番号を入力してください：\n${charas}`);
+
+        if (choice === null) return; // キャンセル
+
+        const index = parseInt(choice) - 1;
+        if (this.party[index]) {
+            const chara = this.party[index];
+            const newName = prompt(`「${chara.name}」の新しい名前を入力してください（最大10文字）`, chara.name);
+
+            if (newName && newName.trim().length > 0) {
+                chara.name = newName.trim().substring(0, 10);
+                this.updatePartyUI(); // UI更新
+                this.saveGame();      // セーブ
+                alert(`名前を「${chara.name}」に変更しました。`);
+            }
+        } else {
+            alert("無効な番号です。");
+        }
     }
 
     setupSceneEvents() {
@@ -215,16 +241,14 @@ class GameController {
 
     // 足りなかったメソッドを補完
     equipSkill(skillId, level = 0) {
-        if (!this.selectedCharaId) return alert('キャラクターを左側から選択してください');
+        if (!this.selectedCharaId) return alert('キャラクターを選択してください');
         const chara = this.party.find(c => c.id === this.selectedCharaId);
 
-        if (chara.skills.length >= 3) return alert('スキル枠がいっぱいです');
-
-        // consume もレベルを渡す必要がある
+        // 上限チェックを削除
         if (this.skillManager.consume(skillId, level)) {
             chara.skills.push({
                 id: skillId,
-                level: parseInt(level), // 確実に数値として保存
+                level: parseInt(level),
                 currentCoolDown: 0,
                 condition: 'always'
             });
