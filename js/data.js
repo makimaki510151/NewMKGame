@@ -3,7 +3,7 @@ const MASTER_DATA = {
         attack: {
             id: "attack", name: "通常攻撃", type: "physical", power: 1.0, coolTime: 0,
             growth: { power: 0.1 }
-        }, // 進化ごとにパワー+0.1
+        },
         slash: {
             id: "slash", name: "斬撃", type: "physical", power: 1.5, coolTime: 3,
             growth: { power: 0.2 }
@@ -15,7 +15,19 @@ const MASTER_DATA = {
         heal: {
             id: "heal", name: "回復", type: "heal", power: 1.0, coolTime: 5,
             growth: { power: 0.2, coolTime: -0.1 }
-        } // 回復はCTもわずかに縮まる例
+        },
+        fire_ball: {
+            id: "fire_ball", name: "火球", type: "magical", power: 1.8, coolTime: 6,
+            growth: { power: 0.25 }
+        },
+        shield_bash: {
+            id: "shield_bash", name: "重撃", type: "physical", power: 2.5, coolTime: 7,
+            growth: { power: 0.5 }
+        },
+        prayer: {
+            id: "prayer", name: "祈り", type: "heal", power: 2.0, coolTime: 8,
+            growth: { power: 0.3, coolTime: -0.2 }
+        }
     },
     FRAGMENT_EFFECTS: {
         power_up: { name: "強撃", desc: "威力+20%", calc: (s) => s.power *= 1.2 },
@@ -27,7 +39,6 @@ const MASTER_DATA = {
         meditation: { name: "瞑想", desc: "威力-20%/自分回復", calc: (s) => { s.power *= 0.8; s.healSelf = true } },
         quick_step: { name: "軽業", desc: "SPD+5", calc: (s) => s.spdBonus = (s.spdBonus || 0) + 5 }
     },
-    // スキル使用条件の定義
     SKILL_CONDITIONS: [
         { id: "always", name: "常に使う" },
         { id: "hp_low", name: "HP50%以下で使う" },
@@ -36,18 +47,12 @@ const MASTER_DATA = {
         { id: "ally_dead", name: "味方が戦闘不能のとき使う" }
     ],
     MAPS: [
-        // {
-        //     id: "test",
-        //     name: "デバッグステージ",
-        //     encounters: [
-        //         ["debug", "debug", "debug", "debug"]
-        //     ]
-        // },
         {
             id: "forest",
             name: "静かな森",
             encounters: [
-                ["slime"]
+                ["slime"],
+                ["slime", "slime"]
             ]
         },
         {
@@ -55,7 +60,8 @@ const MASTER_DATA = {
             name: "暗い洞窟",
             encounters: [
                 ["bat"],
-                ["goblin"]
+                ["goblin"],
+                ["bat", "goblin"]
             ]
         },
         {
@@ -63,7 +69,26 @@ const MASTER_DATA = {
             name: "古い墓地",
             encounters: [
                 ["skeleton"],
-                ["bat", "bat"]
+                ["bat", "bat"],
+                ["skeleton", "ghost"]
+            ]
+        },
+        {
+            id: "volcano",
+            name: "灼熱の火山",
+            encounters: [
+                ["fire_spirit"],
+                ["fire_spirit", "fire_spirit"],
+                ["magma_golem"]
+            ]
+        },
+        {
+            id: "castle",
+            name: "荒れ果てた王城",
+            encounters: [
+                ["armored_knight"],
+                ["armored_knight", "ghost"],
+                ["high_wizard"]
             ]
         }
     ],
@@ -79,24 +104,49 @@ const MASTER_DATA = {
             skills: ["attack"]
         },
         goblin: {
-            id: "goblin", name: "ゴブリン", hp: 240, pAtk: 30, pDef: 20, mAtk: 10, mDef: 20, spd: 30, exp: 5,
+            id: "goblin", name: "ゴブリン", hp: 240, pAtk: 30, pDef: 20, mAtk: 10, mDef: 20, spd: 30, exp:5,
             drop: { id: "slash", rate: 0.02 },
             skills: ["attack", "slash"]
         },
         bat: {
-            id: "bat", name: "コウモリ", hp: 120, pAtk: 10, pDef: 25, mAtk: 50, mDef: 30, spd: 50, exp: 5,
+            id: "bat", name: "コウモリ", hp: 120, pAtk: 10, pDef: 25, mAtk: 50, mDef: 30, spd: 50, exp:5,
             drop: { id: "magic_bullet", rate: 0.02 },
             skills: ["attack", "magic_bullet"]
         },
         skeleton: {
-            id: "skeleton", name: "スケルトン", hp: 400, pAtk: 80, pDef: 120, mAtk: 1, mDef: 120, spd: 100, exp: 5,
+            id: "skeleton", name: "スケルトン", hp: 400, pAtk: 80, pDef: 120, mAtk: 1, mDef: 120, spd: 10, exp:5,
             drop: { id: "slash", rate: 0.05 },
             skills: ["attack", "slash"]
+        },
+        ghost: {
+            id: "ghost", name: "ゴースト", hp: 150, pAtk: 1, pDef: 200, mAtk: 60, mDef: 150, spd: 40, exp:5,
+            drop: { id: "magic_bullet", rate: 0.05 },
+            skills: ["magic_bullet"]
+        },
+        fire_spirit: {
+            id: "fire_spirit", name: "火の精霊", hp: 300, pAtk: 20, pDef: 40, mAtk: 90, mDef: 60, spd: 60, exp:5,
+            drop: { id: "fire_ball", rate: 0.03 },
+            skills: ["attack", "fire_ball"]
+        },
+        magma_golem: {
+            id: "magma_golem", name: "マグマゴーレム", hp: 1200, pAtk: 150, pDef: 200, mAtk: 50, mDef: 100, spd: 5, exp:5,
+            drop: { id: "shield_bash", rate: 0.05 },
+            skills: ["attack", "shield_bash"]
+        },
+        armored_knight: {
+            id: "armored_knight", name: "重装騎士", hp: 800, pAtk: 110, pDef: 250, mAtk: 10, mDef: 150, spd: 25, exp:5,
+            drop: { id: "shield_bash", rate: 0.08 },
+            skills: ["attack", "slash", "shield_bash"]
+        },
+        high_wizard: {
+            id: "high_wizard", name: "ハイウィザード", hp: 500, pAtk: 10, pDef: 50, mAtk: 180, mDef: 250, spd: 70, exp:5,
+            drop: { id: "prayer", rate: 0.05 },
+            skills: ["magic_bullet", "fire_ball", "heal"]
         }
     }
 };
-MASTER_DATA.FRAGMENT_DROP_CHANCE = 0.1; // 10%でドロップ
 
+MASTER_DATA.FRAGMENT_DROP_CHANCE = 0.1;
 MASTER_DATA.FRAGMENT_GROUPS = {
     group1: ["power_up", "ct_down", "quick_step", "life_steal", "meditation", "heavy", "double_cast", "berserk"],
 };
