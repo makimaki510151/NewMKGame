@@ -199,3 +199,27 @@
     padding: 2px 8px;
     cursor: pointer;
 }
+
+/* style.css */
+.skill-slot-container {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.fragment-slot {
+    width: 20px;
+    height: 20px;
+    border: 1px dashed #666;
+    background: #eee;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.fragment-slot.filled {
+    border: 1px solid #007bff;
+    background: #cce5ff;
+}

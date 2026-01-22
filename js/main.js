@@ -69,6 +69,23 @@ class GameController {
         requestAnimationFrame(this.gameLoop);
     }
 
+    generateFragment() {
+        const effects = ["power_up", "ct_down", "multi_target", "life_steal", "debuff_spd", "double_cast", "heal_self", "berserk", "heavy", "resonate", "lucky"];
+        const fragment = {
+            id: Date.now(),
+            name: "輝きのかけら",
+            stats: []
+        };
+
+        // 1〜3つの効果をランダムに付与
+        const count = Math.floor(Math.random() * 3) + 1;
+        for (let i = 0; i < count; i++) {
+            const effect = effects[Math.floor(Math.random() * effects.length)];
+            fragment.stats.push(effect);
+        }
+        return fragment;
+    }
+
     openNameChangeDialog() {
         // 変更したいキャラクターを選択（複数学命いる場合を想定）
         const charas = this.party.map((c, i) => `${i + 1}: ${c.name}`).join('\n');
@@ -239,6 +256,25 @@ class GameController {
         }
     }
 
+    // かけらをスキルに装着
+    attachFragment(charaId, skillIndex, slotIndex, fragmentUniqueId) {
+        const chara = this.party.find(c => c.id === charaId);
+        const skill = chara.skills[skillIndex];
+
+        // すでにスロットに何かあれば戻す
+        if (skill.slots[slotIndex]) {
+            this.skillManager.fragments.push(skill.slots[slotIndex]);
+        }
+
+        // 新しいかけらを装着
+        const fIdx = this.skillManager.fragments.findIndex(f => f.uniqueId === fragmentUniqueId);
+        const fragment = this.skillManager.fragments.splice(fIdx, 1)[0];
+        skill.slots[slotIndex] = fragment;
+
+        this.saveGame();
+        this.renderEquipScene();
+    }
+
     // 足りなかったメソッドを補完
     equipSkill(skillId, level = 0) {
         if (!this.selectedCharaId) return alert('キャラクターを選択してください');
@@ -257,18 +293,22 @@ class GameController {
         }
     }
 
-    unequipSkill(charaId, slotIndex) {
-        const chara = this.party.find(c => String(c.id) === String(charaId));
-        if (!chara) return;
+    // スキル自体を外す処理（既存の関数を修正）
+    unequipSkill(charaId, skillIndex) {
+        const chara = this.party.find(c => c.id === charaId);
+        const skill = chara.skills[skillIndex];
 
-        const skillObj = chara.skills[slotIndex];
-        if (!skillObj || skillObj.id === 'attack') return;
+        // 重要：装着されていた「かけら」をすべて回収する
+        if (skill.slots) {
+            skill.slots.forEach(f => {
+                if (f) this.skillManager.fragments.push(f);
+            });
+        }
 
-        // 修正ポイント: skillObj.level を refund に渡す
-        const level = skillObj.level || 0;
-        this.skillManager.refund(skillObj.id, level);
+        // スキル本体をインベントリに戻し、削除
+        this.skillManager.addSkill(skill.id, skill.level);
+        chara.skills.splice(skillIndex, 1);
 
-        chara.skills.splice(slotIndex, 1);
         this.saveGame();
         this.renderEquipScene();
     }
@@ -513,6 +553,15 @@ class GameController {
                     document.getElementById('battle-log').appendChild(dropDiv);
                 }
             });
+
+            if (Math.random() < MASTER_DATA.FRAGMENT_DROP_CHANCE) {
+                const frag = this.skillManager.dropFragment();
+                const fragNames = frag.effects.map(e => MASTER_DATA.FRAGMENT_EFFECTS[e].name).join(", ");
+                const dropDiv = document.createElement('div');
+                dropDiv.innerText = `★輝きのかけら入手！ [${fragNames}]`;
+                dropDiv.style.color = "#00ffff";
+                document.getElementById('battle-log').appendChild(dropDiv);
+            }
 
             this.checkLevelEvents();
 

@@ -11,6 +11,12 @@ class Character {
         this.skills = [
             { id: "attack", currentCoolDown: 0, condition: "always" }
         ];
+        if (this.skills) {
+            this.skills = this.skills.map(s => {
+                if (!s.slots) s.slots = [null, null, null]; // 3スロット固定の例
+                return s;
+            });
+        }
 
         // 保存データがあれば上書き
         if (savedData) {
@@ -27,12 +33,34 @@ class Character {
         const level = sInfo.level || 0;
         const growth = base.growth || {};
 
-        return {
+        // 1. スキルレベルによる基礎値計算
+        let effective = {
             ...base,
             name: level > 0 ? `${base.name}+${level}` : base.name,
             power: base.power + (growth.power || 0) * level,
-            coolTime: Math.max(0, base.coolTime + (growth.coolTime || 0) * level)
+            coolTime: Math.max(0, base.coolTime + (growth.coolTime || 0) * level),
+            // 追加の隠しパラメータ初期化
+            lifeSteal: 0,
+            selfDamage: 0,
+            doubleChance: 0,
+            healSelf: false
         };
+
+        // 2. 「輝きのかけら」の効果を順番に適用
+        if (sInfo.slots && Array.isArray(sInfo.slots)) {
+            sInfo.slots.forEach(fragment => {
+                if (fragment && fragment.effects) {
+                    fragment.effects.forEach(effectKey => {
+                        const effectConfig = MASTER_DATA.FRAGMENT_EFFECTS[effectKey];
+                        if (effectConfig && effectConfig.calc) {
+                            effectConfig.calc(effective); // 効果を適用
+                        }
+                    });
+                }
+            });
+        }
+
+        return effective;
     }
 
     // 保存用データ作成

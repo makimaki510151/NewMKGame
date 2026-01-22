@@ -67,12 +67,12 @@ class BattleSystem {
         const isPlayer = actor.type === 'player';
         const chara = actor.data;
 
-        // --- 1. まず使用するスキルを決める ---
+        // --- 1. 使用するスキルとデータの決定 ---
         let selectedSkillId = "attack";
         let selectedSkillLevel = 0;
+        let sInfoRef = null;
 
         if (isPlayer) {
-            // プレイヤーのスキル選択
             for (let i = chara.skills.length - 1; i >= 0; i--) {
                 const sInfo = chara.skills[i];
                 const sData = chara.getSkillEffectiveData(sInfo);
@@ -83,59 +83,51 @@ class BattleSystem {
                     selectedSkillId = sInfo.id;
                     selectedSkillLevel = sInfo.level || 0;
                     sInfo.currentCoolDown = sData.coolTime || 0;
+                    sInfoRef = sInfo;
                     break;
                 }
             }
             chara.updateCoolDowns();
         } else {
-            // 敵のスキル選択
             if (chara.skills && chara.skills.length > 0) {
                 selectedSkillId = chara.skills[Math.floor(Math.random() * chara.skills.length)];
             }
         }
 
-        // スキル詳細データの取得
         let skill;
         if (isPlayer) {
-            skill = chara.getSkillEffectiveData({ id: selectedSkillId, level: selectedSkillLevel });
+            skill = chara.getSkillEffectiveData(sInfoRef || { id: selectedSkillId, level: selectedSkillLevel });
         } else {
             skill = MASTER_DATA.SKILLS[selectedSkillId] || MASTER_DATA.SKILLS.attack;
         }
 
-        // --- 2. スキルのタイプに合わせてターゲットを選定する ---
+        // --- 2. ターゲットの選定 ---
         let targets;
         if (skill.type === "heal") {
-            // 回復スキルの場合：自分と同じ陣営（isPlayerならplayer）の生存者
-            targets = allUnits.filter(u =>
-                u.type === actor.type &&
-                (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0)
-            );
+            targets = allUnits.filter(u => u.type === actor.type && (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0));
         } else {
-            // 攻撃スキルの場合：自分と違う陣営（isPlayerならenemy）の生存者
-            targets = allUnits.filter(u =>
-                u.type !== actor.type &&
-                (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0)
-            );
+            targets = allUnits.filter(u => u.type !== actor.type && (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0));
         }
 
         if (targets.length === 0) return { log: "" };
         const target = targets[Math.floor(Math.random() * targets.length)];
 
-        // --- 3. 実行（ダメージ・回復計算） ---
+        // --- 3. 実行（計算と適用） ---
         const aStats = isPlayer ? chara.stats : chara;
-        // ターゲットがプレイヤーか敵かでステータスの場所が違うのを吸収
         const dStats = target.type === 'player' ? target.data.stats : target.data;
         const targetName = target.data.name;
         const attackerName = chara.name;
+        const currentMaxHp = isPlayer ? chara.currentMaxHp : (chara.maxHp || chara.hp);
 
+        let logs = [];
+
+        // スキル本体の処理
         if (skill.type === "heal") {
             const healAmt = Math.floor(aStats.mAtk * skill.power);
-            const maxHp = target.type === 'player' ? target.data.currentMaxHp : target.data.hp; // 敵の最大HPは現在の値で代用
-
-            dStats.hp = Math.min(maxHp, dStats.hp + healAmt);
-            return { log: `${attackerName}の[${skill.name}]！ ${targetName}のHPが ${healAmt} 回復した。` };
+            const tMaxHp = target.type === 'player' ? target.data.currentMaxHp : (target.data.maxHp || target.data.hp);
+            dStats.hp = Math.min(tMaxHp, dStats.hp + healAmt);
+            logs.push(`${attackerName}の[${skill.name}]！ ${targetName}のHPが ${healAmt} 回復。`);
         } else {
-            // 攻撃
             let dmg = 0;
             if (skill.type === "physical") {
                 dmg = Math.max(1, (aStats.pAtk * skill.power) - (dStats.pDef * 0.5));
@@ -144,7 +136,73 @@ class BattleSystem {
             }
             dmg = Math.floor(dmg);
             dStats.hp -= dmg;
-            return { log: `${attackerName}の[${skill.name}]！ ${targetName}に ${dmg} のダメージ！` };
+            logs.push(`${attackerName}の[${skill.name}]！ ${targetName}に ${dmg} のダメージ！`);
+
+            if (skill.lifeSteal > 0) {
+                const stealAmt = Math.floor(dmg * skill.lifeSteal);
+                aStats.hp = Math.min(currentMaxHp, aStats.hp + stealAmt);
+                logs.push(`${attackerName}は生命力を吸収し ${stealAmt} 回復。`);
+            }
+        }
+
+        // かけらの追加効果（自傷・瞑想）
+        if (skill.selfDamage > 0) {
+            const selfDmg = Math.floor(currentMaxHp * skill.selfDamage);
+            aStats.hp = Math.max(1, aStats.hp - selfDmg);
+            logs.push(`${attackerName}は反動で ${selfDmg} ダメージ。`);
+        }
+        if (skill.healSelf) {
+            const meditationHeal = Math.floor(aStats.mAtk * 0.5);
+            aStats.hp = Math.min(currentMaxHp, aStats.hp + meditationHeal);
+            logs.push(`${attackerName}は自身のHPを回復。`);
+        }
+
+        // --- 4. 追撃（再発動）の処理 ---
+        // 無限ループを防ぐため、再発動時は確率判定を行わないように一時的にスキルデータを書き換えるか、
+        // ここで直接もう一度ダメージ処理を行います。
+        if (skill.doubleChance > 0 && Math.random() < skill.doubleChance) {
+            logs.push(`>> 追撃発動！`);
+            // 追撃分はCT消費や条件判定を飛ばして、この場でダメージ/回復を再計算
+            const followUpResult = this.executeFollowUp(actor, skill, allUnits);
+            if (followUpResult.log) logs.push(followUpResult.log);
+        }
+
+        return { log: logs.join(" ") };
+    }
+
+    // 追撃専用の軽量メソッド（CT消費などを行わない）
+    executeFollowUp(actor, skill, allUnits) {
+        const isPlayer = actor.type === 'player';
+        const chara = actor.data;
+
+        // ターゲット再選定（前のターゲットが死んでいる可能性があるため）
+        let targets;
+        if (skill.type === "heal") {
+            targets = allUnits.filter(u => u.type === actor.type && (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0));
+        } else {
+            targets = allUnits.filter(u => u.type !== actor.type && (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0));
+        }
+        if (targets.length === 0) return { log: "" };
+        const target = targets[Math.floor(Math.random() * targets.length)];
+
+        const aStats = isPlayer ? chara.stats : chara;
+        const dStats = target.type === 'player' ? target.data.stats : target.data;
+
+        let dmgOrHeal = 0;
+        if (skill.type === "heal") {
+            dmgOrHeal = Math.floor(aStats.mAtk * skill.power);
+            const tMaxHp = target.type === 'player' ? target.data.currentMaxHp : (target.data.maxHp || target.data.hp);
+            dStats.hp = Math.min(tMaxHp, dStats.hp + dmgOrHeal);
+            return { log: `[追撃] ${target.data.name}のHPを ${dmgOrHeal} 回復！` };
+        } else {
+            if (skill.type === "physical") {
+                dmgOrHeal = Math.max(1, (aStats.pAtk * skill.power) - (dStats.pDef * 0.5));
+            } else if (skill.type === "magical") {
+                dmgOrHeal = Math.max(1, (aStats.mAtk * skill.power) - (dStats.mDef * 0.5));
+            }
+            dmgOrHeal = Math.floor(dmgOrHeal);
+            dStats.hp -= dmgOrHeal;
+            return { log: `[追撃] ${target.data.name}に ${dmgOrHeal} ダメージ！` };
         }
     }
 

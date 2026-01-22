@@ -7,6 +7,25 @@ class SkillManager {
             magic_bullet: { 0: 0 },
             heal: { 0: 0 }
         };
+        this.fragments = savedFragments || [];
+    }
+
+    dropFragment() {
+        const effects = Object.keys(MASTER_DATA.FRAGMENT_EFFECTS);
+        const fragment = {
+            uniqueId: Date.now() + Math.random(),
+            name: "輝きのかけら",
+            effects: []
+        };
+
+        // 1〜3個の効果を抽選
+        const count = Math.floor(Math.random() * 3) + 1;
+        for (let i = 0; i < count; i++) {
+            const effect = effects[Math.floor(Math.random() * effects.length)];
+            fragment.effects.push(effect);
+        }
+        this.fragments.push(fragment);
+        return fragment;
     }
 
     // スキルを拾ったとき
