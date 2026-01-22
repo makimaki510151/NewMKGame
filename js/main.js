@@ -213,6 +213,7 @@ class GameController {
                     const isAttack = sInfo.id === 'attack';
                     const currentCond = sInfo.condition || 'always';
                     const displayPower = (Math.floor(sData.power * 10) / 10).toFixed(1);
+                    const displayCT = (Math.floor(sData.coolTime * 10) / 10).toFixed(1);
 
                     let options = MASTER_DATA.SKILL_CONDITIONS.map(cond =>
                         `<option value="${cond.id}" ${currentCond === cond.id ? 'selected' : ''}>${cond.name}</option>`
@@ -260,7 +261,7 @@ class GameController {
 
                     skillSlotsHtml += `
                 <div class="skill-slot-item" style="border-bottom:1px solid #444; margin-bottom:5px; padding:5px; font-size:0.85em;">
-                    <strong>${sData.name}</strong> (威力:${displayPower})<br>
+                    <strong>${sData.name}</strong> (威力:${displayPower} / CT:${displayCT})<br>
                     <select onchange="gameApp.changeSkillCondition('${chara.id}', ${sIndex}, this.value)">${options}</select>
                     ${!isAttack ? `<button onclick="gameApp.unequipSkill('${chara.id}', ${sIndex})">外す</button>` : '<small> (固定)</small>'}
                     ${fragmentSlotsHtml}
@@ -753,8 +754,20 @@ class GameController {
 
         // 2. パーティの状態を整える
         this.party.forEach(chara => {
-            chara.fullHeal();        // HP全快
-            chara.resetCoolDowns();  // クールタイム全解消（追加）
+            chara.fullHeal();
+
+            // クールタイムを解消（0にする）のではなく、スキルの最大CTをセットするように変更
+            if (chara.skills) {
+                chara.skills.forEach(sInfo => {
+                    // 通常攻撃(attack)以外は、開始時にCTを最大値にする
+                    if (sInfo.id !== 'attack') {
+                        const sData = chara.getSkillEffectiveData(sInfo);
+                        sInfo.currentCoolDown = sData.coolTime;
+                    } else {
+                        sInfo.currentCoolDown = 0;
+                    }
+                });
+            }
         });
 
         // 3. ログエリアの初期化
