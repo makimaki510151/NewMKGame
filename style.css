@@ -27,16 +27,21 @@ body {
     overflow-y: auto;
 }
 
-hr { display: none; }
+hr {
+    display: none;
+}
 
 #game-container {
     max-width: 1000px;
     margin: 0 auto;
     padding: 10px;
-    padding-bottom: 100px; /* 下部ボタン用の余白 */
+    padding-bottom: 100px;
+    /* 下部ボタン用の余白 */
 }
 
-.hidden { display: none !important; }
+.hidden {
+    display: none !important;
+}
 
 /* --- パーティ表示 --- */
 #party-area {
@@ -125,7 +130,8 @@ button:active {
 }
 
 /* リスト部分がスクロールするように修正 */
-#equip-party-list, #equip-inventory-list {
+#equip-party-list,
+#equip-inventory-list {
     width: 100%;
 }
 
@@ -145,11 +151,13 @@ button:active {
 }
 
 /* かけら・スロット */
-.fragment-slot, .fragment-item {
+.fragment-slot,
+.fragment-item {
     padding: 10px;
     margin: 6px 0;
     border-radius: 6px;
-    font-weight: 800;               /* 太字で読みやすく */
+    font-weight: 800;
+    /* 太字で読みやすく */
     font-size: 0.95rem;
     border: 2px solid #ccc;
     display: block;
@@ -178,7 +186,8 @@ button:active {
     padding: 12px;
     font-size: 1rem;
     border-radius: var(--radius);
-    overflow-y: auto; /* ログのスクロールを保証 */
+    overflow-y: auto;
+    /* ログのスクロールを保証 */
     border: 1px solid var(--border);
 }
 
@@ -215,11 +224,13 @@ button:active {
         left: 5%;
         width: 90%;
         z-index: 1000;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
     }
 
     /* 戻るボタンが固定されるため、コンテンツ末尾に余白を追加 */
-    #scene-equip, #scene-map-select, #scene-battle {
+    #scene-equip,
+    #scene-map-select,
+    #scene-battle {
         padding-bottom: 80px;
     }
 }
@@ -240,4 +251,32 @@ button:active {
         max-width: 400px;
         margin: 0 auto;
     }
+}
+
+/* --- スキル装備画面の調整 --- */
+.equip-chara-card {
+    border: 1px solid var(--border);
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: var(--radius);
+    background: var(--card-bg);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* 選択中のキャラクターカードを強調 */
+.equip-chara-card.selected {
+    border: 2px solid #4a9eff;
+    background-color: #2a2a35;
+    box-shadow: 0 0 8px rgba(74, 158, 255, 0.4);
+}
+
+/* かけらリストのスクロールエリア */
+.fragment-scroll-container {
+    max-height: 300px;
+    /* 必要に応じて調整 */
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    background: #fff;
+    margin-top: 5px;
 }
