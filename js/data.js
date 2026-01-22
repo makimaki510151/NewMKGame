@@ -124,22 +124,22 @@ const MASTER_DATA = {
             skills: ["magic_bullet"]
         },
         fire_spirit: {
-            id: "fire_spirit", name: "火の精霊", hp: 300, pAtk: 20, pDef: 40, mAtk: 90, mDef: 60, spd: 60, exp:5,
+            id: "fire_spirit", name: "火の精霊", hp: 3000, pAtk: 200, pDef: 400, mAtk: 900, mDef: 600, spd: 600, exp:5,
             drop: { id: "fire_ball", rate: 0.03 },
             skills: ["attack", "fire_ball"]
         },
         magma_golem: {
-            id: "magma_golem", name: "マグマゴーレム", hp: 1200, pAtk: 150, pDef: 200, mAtk: 50, mDef: 100, spd: 5, exp:5,
+            id: "magma_golem", name: "マグマゴーレム", hp: 12000, pAtk: 1500, pDef: 2000, mAtk: 500, mDef: 1000, spd: 50, exp:5,
             drop: { id: "shield_bash", rate: 0.05 },
             skills: ["attack", "shield_bash"]
         },
         armored_knight: {
-            id: "armored_knight", name: "重装騎士", hp: 800, pAtk: 110, pDef: 250, mAtk: 10, mDef: 150, spd: 25, exp:5,
+            id: "armored_knight", name: "重装騎士", hp: 8000, pAtk: 1100, pDef: 2500, mAtk: 100, mDef: 1500, spd: 250, exp:5,
             drop: { id: "shield_bash", rate: 0.08 },
             skills: ["attack", "slash", "shield_bash"]
         },
         high_wizard: {
-            id: "high_wizard", name: "ハイウィザード", hp: 500, pAtk: 10, pDef: 50, mAtk: 180, mDef: 250, spd: 70, exp:5,
+            id: "high_wizard", name: "ハイウィザード", hp: 5000, pAtk: 100, pDef: 500, mAtk: 1800, mDef: 2500, spd: 700, exp:5,
             drop: { id: "prayer", rate: 0.05 },
             skills: ["magic_bullet", "fire_ball", "heal"]
         }
