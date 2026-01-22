@@ -1,3 +1,26 @@
+async function initDiscord() {
+    // Discord環境かどうかチェック
+    if (typeof Discord === 'undefined') return null;
+
+    const discordSdk = new Discord.DiscordSDK("YOUR_CLIENT_ID_HERE"); // Discord Developer Portalで取得したID
+    
+    await discordSdk.ready();
+    console.log("Discord SDK is ready");
+
+    // 認証処理（任意：ユーザー情報を取得したい場合）
+    const { code } = await discordSdk.commands.authorize({
+        client_id: "YOUR_CLIENT_ID_HERE",
+        response_type: "code",
+        state: "",
+        prompt: "none",
+        scope: ["identify", "guilds"],
+    });
+
+    // ここでバックエンドを介してアクセス談トークンを取得する処理が必要ですが、
+    // 単にSDKを動かすだけなら ready() だけで十分です。
+    return discordSdk;
+}
+
 class GameController {
     constructor() {
         this.SAVE_KEY = 'new_mkrpg_save_data';
@@ -25,7 +48,21 @@ class GameController {
         this.fragmentSortType = 'default';
         this.fragmentFilterEffect = 'all';
 
+        this.discord = null;
+        this.setupDiscord();
+
         this.init();
+    }
+
+    async setupDiscord() {
+        try {
+            this.discord = await initDiscord();
+            if (this.discord) {
+                console.log("Discord連携完了");
+            }
+        } catch (e) {
+            console.error("Discord SDKの初期化に失敗:", e);
+        }
     }
 
     // GameController 内の loadGame メソッドを修正
@@ -225,7 +262,7 @@ class GameController {
 
                         fragmentSlotsHtml += `
                             <div class="fragment-slot ${filledClass}" 
-                                 style="width:20px; height:20px; border:1px dashed #666; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; background:${frag ? '#fff9c4' : '#fff'};"
+                                 style="width:20px; height:20px; border:1px dashed #666; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; background:${frag ? '#ffed4a' : '#fff'};"
                                  title="${title}"
                                  onclick="event.stopPropagation(); ${clickAction}">
                                 ${label}
