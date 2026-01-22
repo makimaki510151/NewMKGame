@@ -85,4 +85,34 @@ class Character {
             this.updatePartyUI();
         }
     }
+
+    reincarnate() {
+        if (this.level < 100) return;
+
+        this.reincarnationCount++;
+        this.level = 1;
+        this.exp = 0;
+
+        // ボーナスポイントの計算 (転生回数 × 20)
+        let bonusPool = this.reincarnationCount * 20;
+
+        // 初期ステータスの再設定
+        this.currentMaxHp = 100;
+        this.stats = { hp: 100, pAtk: 10, pDef: 10, mAtk: 10, mDef: 10, spd: 10 };
+
+        // ボーナスポイントをランダムなステータスに割り振る
+        const statKeys = ['currentMaxHp', 'pAtk', 'pDef', 'mAtk', 'mDef', 'spd'];
+        while (bonusPool > 0) {
+            const key = statKeys[Math.floor(Math.random() * statKeys.length)];
+            const add = Math.min(bonusPool, 5); // 5ポイントずつ割り振り
+            if (key === 'currentMaxHp') {
+                this.currentMaxHp += add;
+                this.stats.hp = this.currentMaxHp;
+            } else {
+                this.stats[key] += add;
+            }
+            bonusPool -= add;
+        }
+        this.fullHeal();
+    }
 }

@@ -7,6 +7,13 @@ const MASTER_DATA = {
     },
     MAPS: [
         { 
+            id: "test", 
+            name: "デバッグステージ", 
+            encounters: [
+                ["debug", "debug", "debug", "debug"]
+            ] 
+        },
+        { 
             id: "forest", 
             name: "静かな森", 
             encounters: [
@@ -18,11 +25,20 @@ const MASTER_DATA = {
             name: "暗い洞窟", 
             encounters: [
                 ["bat"],
-                ["skeleton"]
+                ["goblin"]
             ] 
+        },
+        {
+            id: "cemetery",
+            name: "古い墓地",
+            encounters: [
+                ["skeleton"],
+                ["bat", "bat"]
+            ]
         }
     ],
     ENEMIES: {
+        debug: { id: "debug", name: "デバッグ君", hp: 1, pAtk: 1, pDef: 1, mAtk: 1, mDef: 1, spd: 1, exp: 100 },
         slime: { id: "slime", name: "スライム", hp: 50, pAtk: 10, pDef: 5, mAtk: 5, mDef: 5, spd: 8, exp: 10 },
         goblin: { id: "goblin", name: "ゴブリン", hp: 80, pAtk: 15, pDef: 8, mAtk: 2, mDef: 4, spd: 12, exp: 10 },
         bat: { id: "bat", name: "コウモリ", hp: 40, pAtk: 12, pDef: 3, mAtk: 5, mDef: 10, spd: 20, exp: 10 },
