@@ -155,10 +155,11 @@ class BattleSystem {
             aStats.hp = Math.max(1, aStats.hp - selfDmg);
             logs.push(`${attackerName}は反動で ${selfDmg} ダメージ。`);
         }
+
         if (skill.healSelf) {
             const meditationHeal = Math.floor(aStats.mAtk * 0.5);
             aStats.hp = Math.min(currentMaxHp, aStats.hp + meditationHeal);
-            logs.push(`${attackerName}は自身のHPを回復。`);
+            logs.push(`${attackerName}は自身のHPを${meditationHeal}回復。`);
         }
 
         // --- 4. 追撃（再発動）の処理 ---
