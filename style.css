@@ -180,3 +180,22 @@
 .menu-button:hover {
     background: #666;
 }
+
+.inventory-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding: 8px;
+    font-size: 0.9em;
+}
+
+.skill-info {
+    flex: 1;
+}
+
+.skill-actions button {
+    margin-left: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+}

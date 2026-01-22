@@ -144,11 +144,9 @@ class GameController {
             let skillSlots = '';
             if (Array.isArray(chara.skills)) {
                 chara.skills.forEach((sInfo, index) => {
-                    const sId = typeof sInfo === 'string' ? sInfo : sInfo.id;
-                    const sData = MASTER_DATA.SKILLS[sId];
-                    if (!sData) return;
-
-                    const isAttack = sId === 'attack';
+                    // 進化レベルを考慮した詳細データを取得
+                    const sData = chara.getSkillEffectiveData(sInfo);
+                    const isAttack = sInfo.id === 'attack';
                     const currentCond = sInfo.condition || 'always';
 
                     let options = MASTER_DATA.SKILL_CONDITIONS.map(cond =>
@@ -156,11 +154,11 @@ class GameController {
                     ).join('');
 
                     skillSlots += `
-                    <div class="skill-slot-item" style="border-bottom:1px solid #444; margin-bottom:5px; padding:5px;">
-                        <span>${sData.name}</span>
-                        <select onchange="gameApp.changeSkillCondition(${chara.id}, ${index}, this.value)" style="margin-left:5px;">${options}</select>
-                        ${!isAttack ? `<button onclick="gameApp.unequipSkill(${chara.id}, ${index})" style="margin-left:5px;">外す</button>` : '<small> (固定)</small>'}
-                    </div>`;
+                        <div class="skill-slot-item" style="border-bottom:1px solid #444; margin-bottom:5px; padding:5px; font-size:0.85em;">
+                            <strong>${sData.name}</strong> (威力:${sData.power.toFixed(1)})<br>
+                            <select onchange="gameApp.changeSkillCondition(${chara.id}, ${index}, this.value)">${options}</select>
+                            ${!isAttack ? `<button onclick="gameApp.unequipSkill(${chara.id}, ${index})">外す</button>` : '<small> (固定)</small>'}
+                        </div>`;
                 });
             }
 
@@ -173,35 +171,57 @@ class GameController {
             partyList.appendChild(div);
         });
 
-        // 右側：在庫表示
-        invList.innerHTML = '<h3>所持スキル（クリックで装備）</h3>';
-        for (const [sId, count] of Object.entries(this.skillManager.inventory)) {
-            if (sId === 'attack' || count <= 0) continue;
-            const skillData = MASTER_DATA.SKILLS[sId];
+        // 右側：所持スキルと合成ボタン
+        invList.innerHTML = '<h3>所持スキル・合成</h3>';
+        // SkillManagerのinventoryを走査 (構造: inventory[skillId][level])
+        for (const [sId, levels] of Object.entries(this.skillManager.inventory)) {
+            if (sId === 'attack') continue;
 
-            const btn = document.createElement('button');
-            btn.style.display = 'block';
-            btn.style.width = '100%';
-            btn.style.margin = '5px 0';
-            btn.style.padding = '10px';
-            btn.innerText = `${skillData.name} (在庫:${count}個)`;
+            for (const [level, count] of Object.entries(levels)) {
+                if (count <= 0) continue;
 
-            btn.onclick = () => this.equipSkill(sId);
-            invList.appendChild(btn);
+                const lvlInt = parseInt(level);
+                // 仮のキャラデータを使って詳細表示用データを生成
+                const sData = this.party[0].getSkillEffectiveData({ id: sId, level: lvlInt });
+
+                const itemDiv = document.createElement('div');
+                itemDiv.style = "border-bottom:1px solid #eee; padding:8px; display:flex; justify-content:space-between; align-items:center; font-size:0.9em;";
+                itemDiv.innerHTML = `
+                    <div>
+                        <strong>${sData.name}</strong> (在庫:${count})<br>
+                        <small>威力:${sData.power.toFixed(1)} / CT:${sData.coolTime.toFixed(1)}</small>
+                    </div>
+                    <div>
+                        <button onclick="gameApp.equipSkill('${sId}', ${lvlInt})">装備</button>
+                        ${count >= 2 ? `<button onclick="gameApp.combineSkill('${sId}', ${lvlInt})" style="background:#eef;">合成</button>` : ''}
+                    </div>
+                `;
+                invList.appendChild(itemDiv);
+            }
+        }
+    }
+
+    combineSkill(skillId, level) {
+        // SkillManager側の合成処理を呼び出し
+        if (this.skillManager.combineSkill(skillId, level)) {
+            const sData = MASTER_DATA.SKILLS[skillId];
+            this.saveGame();
+            this.renderEquipScene();
         }
     }
 
     // 足りなかったメソッドを補完
-    equipSkill(skillId) {
+    equipSkill(skillId, level = 0) {
         if (!this.selectedCharaId) return alert('キャラクターを左側から選択してください');
         const chara = this.party.find(c => c.id === this.selectedCharaId);
 
-        // 最大スロット数を3（通常攻撃+自由枠2）に制限
-        if (chara.skills.length >= 3) return alert('スキル枠がいっぱいです。何かを外してください。');
+        if (chara.skills.length >= 3) return alert('スキル枠がいっぱいです');
 
-        if (this.skillManager.consume(skillId)) {
+        // consume もレベルを渡す必要がある
+        if (this.skillManager.consume(skillId, level)) {
             chara.skills.push({
                 id: skillId,
+                level: parseInt(level), // 確実に数値として保存
                 currentCoolDown: 0,
                 condition: 'always'
             });
@@ -212,11 +232,15 @@ class GameController {
 
     unequipSkill(charaId, slotIndex) {
         const chara = this.party.find(c => String(c.id) === String(charaId));
+        if (!chara) return;
+
         const skillObj = chara.skills[slotIndex];
+        if (!skillObj || skillObj.id === 'attack') return;
 
-        if (skillObj.id === 'attack') return; // 通常攻撃は外せない
+        // 修正ポイント: skillObj.level を refund に渡す
+        const level = skillObj.level || 0;
+        this.skillManager.refund(skillObj.id, level);
 
-        this.skillManager.refund(skillObj.id);
         chara.skills.splice(slotIndex, 1);
         this.saveGame();
         this.renderEquipScene();

@@ -22,6 +22,19 @@ class Character {
         }
     }
 
+    getSkillEffectiveData(sInfo) {
+        const base = MASTER_DATA.SKILLS[sInfo.id];
+        const level = sInfo.level || 0;
+        const growth = base.growth || {};
+
+        return {
+            ...base,
+            name: level > 0 ? `${base.name}+${level}` : base.name,
+            power: base.power + (growth.power || 0) * level,
+            coolTime: Math.max(0, base.coolTime + (growth.coolTime || 0) * level)
+        };
+    }
+
     // 保存用データ作成
     serialize() {
         return {

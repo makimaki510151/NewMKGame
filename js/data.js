@@ -1,9 +1,21 @@
 const MASTER_DATA = {
     SKILLS: {
-        attack: { id: "attack", name: "通常攻撃", type: "physical", power: 1.0, coolTime: 0 },
-        slash: { id: "slash", name: "斬撃", type: "physical", power: 1.5, coolTime: 2 },
-        magic_bullet: { id: "magic_bullet", name: "魔力弾", type: "magical", power: 1.2, coolTime: 3 },
-        heal: { id: "heal", name: "回復", type: "heal", power: 1.0, coolTime: 4 }
+        attack: {
+            id: "attack", name: "通常攻撃", type: "physical", power: 1.0, coolTime: 0,
+            growth: { power: 0.1 }
+        }, // 進化ごとにパワー+0.1
+        slash: {
+            id: "slash", name: "斬撃", type: "physical", power: 1.5, coolTime: 3,
+            growth: { power: 0.2 }
+        },
+        magic_bullet: {
+            id: "magic_bullet", name: "魔力弾", type: "magical", power: 1.2, coolTime: 4,
+            growth: { power: 0.15 }
+        },
+        heal: {
+            id: "heal", name: "回復", type: "heal", power: 1.0, coolTime: 5,
+            growth: { power: 0.2, coolTime: -0.1 }
+        } // 回復はCTもわずかに縮まる例
     },
     // スキル使用条件の定義
     SKILL_CONDITIONS: [
@@ -48,6 +60,6 @@ const MASTER_DATA = {
         slime: { id: "slime", name: "スライム", hp: 50, pAtk: 10, pDef: 5, mAtk: 5, mDef: 5, spd: 8, exp: 10, drop: { id: "slash", rate: 0.01 } },
         goblin: { id: "goblin", name: "ゴブリン", hp: 80, pAtk: 15, pDef: 8, mAtk: 2, mDef: 4, spd: 12, exp: 10, drop: { id: "slash", rate: 0.02 } },
         bat: { id: "bat", name: "コウモリ", hp: 40, pAtk: 12, pDef: 3, mAtk: 5, mDef: 10, spd: 20, exp: 10, drop: { id: "magic_bullet", rate: 0.02 } },
-        skeleton: { id: "skeleton", name: "スケルトン", hp: 120, pAtk: 20, pDef: 15, mAtk: 0, m_def: 0, spd: 5, exp: 10, drop: { id: "slash", rate: 0.05} }
+        skeleton: { id: "skeleton", name: "スケルトン", hp: 120, pAtk: 20, pDef: 15, mAtk: 0, m_def: 0, spd: 5, exp: 10, drop: { id: "slash", rate: 0.05 } }
     }
 };

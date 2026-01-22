@@ -77,40 +77,45 @@ class BattleSystem {
 
         // --- スキル選択ロジック ---
         let selectedSkillId = "attack";
+        let selectedSkillLevel = 0;
+
         if (isPlayer) {
-            // クールタイムが0かつ条件を満たすスキルを、リストの後ろ（強力なもの）から探す
+            // 1. 現在の currentCoolDown を見て、使用可能なスキルがあるか判定
+            // (まだ updateCoolDowns をしていないので、0のものだけが対象になる)
             for (let i = chara.skills.length - 1; i >= 0; i--) {
                 const sInfo = chara.skills[i];
-                const sData = MASTER_DATA.SKILLS[sInfo.id];
+                const sData = chara.getSkillEffectiveData(sInfo);
 
-                // クールタイム中かチェック
                 const isAvailable = (sInfo.currentCoolDown || 0) <= 0;
-                // 条件チェック（簡易版）
                 const isConditionMet = this.checkSkillCondition(chara, sInfo.condition || 'always');
 
                 if (isAvailable && isConditionMet) {
                     selectedSkillId = sInfo.id;
-                    // クールタイムをセット
+                    selectedSkillLevel = sInfo.level || 0;
+
+                    // スキル使用直後にクールタイムをセット
+                    // このターンはこの後 updateCoolDowns が走るので、実質 coolTime 分の猶予が生まれる
                     sInfo.currentCoolDown = sData.coolTime || 0;
                     break;
                 }
             }
-            // 全スキルのクールダウンを1進める（今回の使用分以外）
+
+            // 2. ターンの最後に全スキルのクールダウンを1進める
+            // (今使ったスキルもここで 1 減るため、coolTime: 2 なら次とその次は撃てない)
             chara.updateCoolDowns();
         }
 
-        const skill = MASTER_DATA.SKILLS[selectedSkillId];
+        // --- 以降、ダメージ計算とログ出力 ---
+        const skill = chara.getSkillEffectiveData({ id: selectedSkillId, level: selectedSkillLevel });
         const aStats = isPlayer ? chara.stats : chara;
         const dStats = isPlayer ? target.data : target.data.stats;
 
-        // ダメージ計算（スキルのPowerを乗算）
         let dmg = 0;
         if (skill.type === "physical") {
             dmg = Math.max(1, (aStats.pAtk * skill.power) - (dStats.pDef * 0.5));
         } else if (skill.type === "magical") {
             dmg = Math.max(1, (aStats.mAtk * skill.power) - (dStats.mDef * 0.5));
         } else if (skill.type === "heal") {
-            // 回復スキルの場合
             const healAmt = Math.floor(aStats.mAtk * skill.power);
             aStats.hp = Math.min(chara.currentMaxHp, aStats.hp + healAmt);
             return { log: `${chara.name}の[${skill.name}]！ HPが ${healAmt} 回復した。` };
@@ -123,10 +128,9 @@ class BattleSystem {
             target.data.stats.hp -= dmg;
         }
 
-        const attackerName = isPlayer ? chara.name : chara.name;
+        const attackerName = chara.name;
         const targetName = isPlayer ? target.data.name : target.data.name;
 
-        // スキル名を含んだログを返す
         return { log: `${attackerName}の[${skill.name}]！ ${targetName}に ${dmg} のダメージ！` };
     }
 
