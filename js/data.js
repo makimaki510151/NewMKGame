@@ -89,7 +89,7 @@ const MASTER_DATA = {
             skills: ["attack", "magic_bullet"]
         },
         skeleton: {
-            id: "skeleton", name: "スケルトン", hp: 400, pAtk: 80, pDef: 120, mAtk: 0, m_def: 120, spd: 100, exp: 5,
+            id: "skeleton", name: "スケルトン", hp: 400, pAtk: 80, pDef: 120, mAtk: 1, mDef: 120, spd: 100, exp: 5,
             drop: { id: "slash", rate: 0.05 },
             skills: ["attack", "slash"]
         }
