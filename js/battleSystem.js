@@ -66,54 +66,77 @@ class BattleSystem {
     executeAction(actor, allUnits) {
         const isPlayer = actor.type === 'player';
         const chara = actor.data;
-        const aStats = isPlayer ? chara.stats : chara;
 
-        let selectedSkillId = "attack";
-
-        if (isPlayer) {
-            // クールタイムが終了しており、条件を満たすスキルを探す
-            // 通常攻撃(0番目)以外を優先的にチェック
-            for (let i = chara.skills.length - 1; i >= 1; i--) {
-                const sInfo = chara.skills[i];
-                const sData = MASTER_DATA.SKILLS[sInfo.id];
-
-                if (sInfo.currentCoolDown <= 0 && this.checkCondition(chara, sInfo.condition)) {
-                    selectedSkillId = sInfo.id;
-                    sInfo.currentCoolDown = sData.coolTime; // クールタイム発生
-                    break;
-                }
-            }
-            chara.updateCoolDowns(); // 行動ごとに全スキルのクールタイムを1減らす
-        }
-
-        // 生存している敵対ターゲットを取得
+        // ターゲット選定
         const targets = allUnits.filter(u =>
             (isPlayer ? u.type === 'enemy' : u.type === 'player') &&
             (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0)
         );
-
         if (targets.length === 0) return { log: "" };
-
-        // ターゲットをランダムに1体選択（スケーラビリティのため）
         const target = targets[Math.floor(Math.random() * targets.length)];
 
+        // --- スキル選択ロジック ---
+        let selectedSkillId = "attack";
+        if (isPlayer) {
+            // クールタイムが0かつ条件を満たすスキルを、リストの後ろ（強力なもの）から探す
+            for (let i = chara.skills.length - 1; i >= 0; i--) {
+                const sInfo = chara.skills[i];
+                const sData = MASTER_DATA.SKILLS[sInfo.id];
+
+                // クールタイム中かチェック
+                const isAvailable = (sInfo.currentCoolDown || 0) <= 0;
+                // 条件チェック（簡易版）
+                const isConditionMet = this.checkSkillCondition(chara, sInfo.condition || 'always');
+
+                if (isAvailable && isConditionMet) {
+                    selectedSkillId = sInfo.id;
+                    // クールタイムをセット
+                    sInfo.currentCoolDown = sData.coolTime || 0;
+                    break;
+                }
+            }
+            // 全スキルのクールダウンを1進める（今回の使用分以外）
+            chara.updateCoolDowns();
+        }
+
+        const skill = MASTER_DATA.SKILLS[selectedSkillId];
+        const aStats = isPlayer ? chara.stats : chara;
         const dStats = isPlayer ? target.data : target.data.stats;
 
-        // ダメージ計算
-        const damage = Math.max(1, Math.floor(aStats.pAtk - (dStats.pDef / 2)));
-        dStats.hp -= damage;
+        // ダメージ計算（スキルのPowerを乗算）
+        let dmg = 0;
+        if (skill.type === "physical") {
+            dmg = Math.max(1, (aStats.pAtk * skill.power) - (dStats.pDef * 0.5));
+        } else if (skill.type === "magical") {
+            dmg = Math.max(1, (aStats.mAtk * skill.power) - (dStats.mDef * 0.5));
+        } else if (skill.type === "heal") {
+            // 回復スキルの場合
+            const healAmt = Math.floor(aStats.mAtk * skill.power);
+            aStats.hp = Math.min(chara.currentMaxHp, aStats.hp + healAmt);
+            return { log: `${chara.name}の[${skill.name}]！ HPが ${healAmt} 回復した。` };
+        }
 
-        return {
-            log: `${isPlayer ? actor.data.name : actor.data.name}の攻撃！ ${isPlayer ? target.data.name : target.data.name}に ${damage} のダメージ`
-        };
+        dmg = Math.floor(dmg);
+        if (isPlayer) {
+            target.data.hp -= dmg;
+        } else {
+            target.data.stats.hp -= dmg;
+        }
+
+        const attackerName = isPlayer ? chara.name : chara.name;
+        const targetName = isPlayer ? target.data.name : target.data.name;
+
+        // スキル名を含んだログを返す
+        return { log: `${attackerName}の[${skill.name}]！ ${targetName}に ${dmg} のダメージ！` };
     }
 
-    checkCondition(chara, conditionId) {
+    // スキルの使用条件を判定するヘルパー
+    checkSkillCondition(chara, condition) {
         const hpRate = chara.stats.hp / chara.currentMaxHp;
-        switch (conditionId) {
-            case "hp_low": return hpRate <= 0.5;
-            case "hp_high": return hpRate > 0.5;
-            case "always":
+        switch (condition) {
+            case 'hp_low': return hpRate <= 0.5;
+            case 'hp_high': return hpRate > 0.5;
+            case 'always': return true;
             default: return true;
         }
     }

@@ -1,18 +1,22 @@
 class GameController {
     constructor() {
         this.SAVE_KEY = 'new_mkrpg_save_data';
-        this.loadGame(); // コンストラクタの最初で読み込み
 
-        this.currentEnemies = []; // 配列に変更
+        // 1. まず各マネージャーのインスタンスを作成（空の状態でよい）
+        this.skillManager = new SkillManager();
+        this.battleSystem = new BattleSystem();
+
+        // 2. 次にデータをロード（ここで skillManager の中身が上書きされる）
+        this.loadGame();
+
+        this.currentEnemies = [];
         this.lastBattleTime = 0;
-        this.battleInterval = 1000; // 1秒(1000ms)
+        this.battleInterval = 1000;
         this.currentScene = 'title';
         this.currentMap = null;
         this.currentEnemy = null;
         this.selectedCharaId = null;
 
-        this.skillManager = new SkillManager();
-        this.battleSystem = new BattleSystem();
         this.gameLoop = this.gameLoop.bind(this);
 
         this.isPressing = false;
@@ -23,7 +27,8 @@ class GameController {
     saveGame() {
         const saveData = {
             party: this.party.map(c => ({ id: c.id, name: c.name, data: c.serialize() })),
-            inventory: this.skillManager.inventory // インベントリを保存対象に追加
+            // 在庫データを保存対象に追加
+            skillInventory: this.skillManager.inventory
         };
         localStorage.setItem(this.SAVE_KEY, JSON.stringify(saveData));
     }
@@ -31,12 +36,21 @@ class GameController {
     loadGame() {
         const rawData = localStorage.getItem(this.SAVE_KEY);
         if (rawData) {
-            const parsed = JSON.parse(rawData);
-            this.party = parsed.party.map(p => new Character(p.id, p.name, p.data));
-            this.skillManager = new SkillManager(parsed.inventory); // 在庫を復元
+            try {
+                const parsed = JSON.parse(rawData);
+                // キャラクターの復元
+                this.party = parsed.party.map(p => new Character(p.id, p.name, p.data));
+
+                // 3. 重要：保存されていた在庫データを既存の skillManager にセット
+                if (parsed.skillInventory) {
+                    this.skillManager.inventory = parsed.skillInventory;
+                }
+            } catch (e) {
+                console.error("セーブデータの読み込みに失敗しました", e);
+                this.party = [new Character(1, "Hero")];
+            }
         } else {
             this.party = [new Character(1, "Hero")];
-            this.skillManager = new SkillManager();
         }
     }
 
@@ -376,7 +390,10 @@ class GameController {
         }
 
         // 2. パーティの状態を整える
-        this.party.forEach(chara => chara.fullHeal());
+        this.party.forEach(chara => {
+            chara.fullHeal();        // HP全快
+            chara.resetCoolDowns();  // クールタイム全解消（追加）
+        });
 
         // 3. ログエリアの初期化
         const logEl = document.getElementById('battle-log');

@@ -15,6 +15,10 @@ class Character {
         // 保存データがあれば上書き
         if (savedData) {
             Object.assign(this, savedData);
+            // オブジェクト形式への変換ガード（前回提示分）
+            if (this.skills && typeof this.skills[0] === 'string') {
+                this.skills = this.skills.map(sId => ({ id: sId, currentCoolDown: 0, condition: "always" }));
+            }
         }
     }
 
@@ -86,6 +90,16 @@ class Character {
                 if (c.stats.hp <= 0) c.stats.hp = 100; // 簡易的な蘇生
             });
             this.updatePartyUI();
+        }
+    }
+
+    resetCoolDowns() {
+        if (Array.isArray(this.skills)) {
+            this.skills.forEach(s => {
+                if (typeof s === 'object') {
+                    s.currentCoolDown = 0;
+                }
+            });
         }
     }
 

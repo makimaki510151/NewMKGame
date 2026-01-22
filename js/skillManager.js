@@ -13,9 +13,9 @@ class SkillManager {
     addSkill(skillId) {
         if (this.inventory[skillId] !== undefined) {
             this.inventory[skillId]++;
-            return true;
+        } else {
+            this.inventory[skillId] = 1;
         }
-        return false;
     }
 
     // 在庫があるか確認
