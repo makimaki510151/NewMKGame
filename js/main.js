@@ -1,26 +1,3 @@
-async function initDiscord() {
-    // Discord環境かどうかチェック
-    if (typeof Discord === 'undefined') return null;
-
-    const discordSdk = new Discord.DiscordSDK("1463810591675125800"); // Discord Developer Portalで取得したID
-    
-    await discordSdk.ready();
-    console.log("Discord SDK is ready");
-
-    // 認証処理（任意：ユーザー情報を取得したい場合）
-    const { code } = await discordSdk.commands.authorize({
-        client_id: "YOUR_CLIENT_ID_HERE",
-        response_type: "code",
-        state: "",
-        prompt: "none",
-        scope: ["identify", "guilds"],
-    });
-
-    // ここでバックエンドを介してアクセス談トークンを取得する処理が必要ですが、
-    // 単にSDKを動かすだけなら ready() だけで十分です。
-    return discordSdk;
-}
-
 class GameController {
     constructor() {
         this.SAVE_KEY = 'new_mkrpg_save_data';
@@ -47,9 +24,6 @@ class GameController {
         this.canBattle = true;
         this.fragmentSortType = 'default';
         this.fragmentFilterEffect = 'all';
-
-        this.discord = null;
-        this.setupDiscord();
 
         this.init();
     }
