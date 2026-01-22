@@ -75,41 +75,48 @@ class BattleSystem {
         if (targets.length === 0) return { log: "" };
         const target = targets[Math.floor(Math.random() * targets.length)];
 
-        // --- スキル選択ロジック ---
         let selectedSkillId = "attack";
         let selectedSkillLevel = 0;
 
         if (isPlayer) {
-            // 1. 現在の currentCoolDown を見て、使用可能なスキルがあるか判定
-            // (まだ updateCoolDowns をしていないので、0のものだけが対象になる)
+            // プレイヤーのスキル選択（既存ロジック）
             for (let i = chara.skills.length - 1; i >= 0; i--) {
                 const sInfo = chara.skills[i];
                 const sData = chara.getSkillEffectiveData(sInfo);
-
                 const isAvailable = (sInfo.currentCoolDown || 0) <= 0;
                 const isConditionMet = this.checkSkillCondition(chara, sInfo.condition || 'always');
 
                 if (isAvailable && isConditionMet) {
                     selectedSkillId = sInfo.id;
                     selectedSkillLevel = sInfo.level || 0;
-
-                    // スキル使用直後にクールタイムをセット
-                    // このターンはこの後 updateCoolDowns が走るので、実質 coolTime 分の猶予が生まれる
                     sInfo.currentCoolDown = sData.coolTime || 0;
                     break;
                 }
             }
-
-            // 2. ターンの最後に全スキルのクールダウンを1進める
-            // (今使ったスキルもここで 1 減るため、coolTime: 2 なら次とその次は撃てない)
             chara.updateCoolDowns();
+        } else {
+            // 敵のスキル選択
+            // chara.skills が定義されている場合は、ランダムまたは順に選択（現在は簡易的にランダム）
+            if (chara.skills && chara.skills.length > 0) {
+                // attack以外のスキルがある場合、一定確率で使うなどのロジックも可能
+                selectedSkillId = chara.skills[Math.floor(Math.random() * chara.skills.length)];
+            }
         }
 
-        // --- 以降、ダメージ計算とログ出力 ---
-        const skill = chara.getSkillEffectiveData({ id: selectedSkillId, level: selectedSkillLevel });
+        // スキル詳細データの取得
+        let skill;
+        if (isPlayer) {
+            skill = chara.getSkillEffectiveData({ id: selectedSkillId, level: selectedSkillLevel });
+        } else {
+            // 敵はレベル0として MASTER_DATA から取得
+            skill = MASTER_DATA.SKILLS[selectedSkillId] || MASTER_DATA.SKILLS.attack;
+        }
+
+        // ステータス参照の統一
         const aStats = isPlayer ? chara.stats : chara;
         const dStats = isPlayer ? target.data : target.data.stats;
 
+        // ダメージ計算
         let dmg = 0;
         if (skill.type === "physical") {
             dmg = Math.max(1, (aStats.pAtk * skill.power) - (dStats.pDef * 0.5));
@@ -117,8 +124,13 @@ class BattleSystem {
             dmg = Math.max(1, (aStats.mAtk * skill.power) - (dStats.mDef * 0.5));
         } else if (skill.type === "heal") {
             const healAmt = Math.floor(aStats.mAtk * skill.power);
-            aStats.hp = Math.min(chara.currentMaxHp, aStats.hp + healAmt);
-            return { log: `${chara.name}の[${skill.name}]！ HPが ${healAmt} 回復した。` };
+            if (isPlayer) {
+                aStats.hp = Math.min(chara.currentMaxHp, aStats.hp + healAmt);
+            } else {
+                // 敵が自分を回復する場合（簡易実装）
+                chara.hp = Math.min(chara.maxHp || chara.hp, chara.hp + healAmt);
+            }
+            return { log: `${isPlayer ? chara.name : chara.name}の[${skill.name}]！ HPが ${healAmt} 回復した。` };
         }
 
         dmg = Math.floor(dmg);

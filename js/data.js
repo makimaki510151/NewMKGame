@@ -56,10 +56,30 @@ const MASTER_DATA = {
         }
     ],
     ENEMIES: {
-        debug: { id: "debug", name: "デバッグ君", hp: 1, pAtk: 1, pDef: 1, mAtk: 1, mDef: 1, spd: 1, exp: 100, drop: { id: "slash", rate: 0.5 } },
-        slime: { id: "slime", name: "スライム", hp: 50, pAtk: 10, pDef: 5, mAtk: 5, mDef: 5, spd: 8, exp: 10, drop: { id: "slash", rate: 0.01 } },
-        goblin: { id: "goblin", name: "ゴブリン", hp: 80, pAtk: 15, pDef: 8, mAtk: 2, mDef: 4, spd: 12, exp: 10, drop: { id: "slash", rate: 0.02 } },
-        bat: { id: "bat", name: "コウモリ", hp: 40, pAtk: 12, pDef: 3, mAtk: 5, mDef: 10, spd: 20, exp: 10, drop: { id: "magic_bullet", rate: 0.02 } },
-        skeleton: { id: "skeleton", name: "スケルトン", hp: 120, pAtk: 20, pDef: 15, mAtk: 0, m_def: 0, spd: 5, exp: 10, drop: { id: "slash", rate: 0.05 } }
+        debug: {
+            id: "debug", name: "デバッグ君", hp: 1, pAtk: 1, pDef: 1, mAtk: 1, mDef: 1, spd: 1, exp: 100,
+            drop: { id: "slash", rate: 0.5 },
+            skills: ["attack", "slash", "magic_bullet", "heal"]
+        },
+        slime: {
+            id: "slime", name: "スライム", hp: 50, pAtk: 10, pDef: 5, mAtk: 5, mDef: 5, spd: 8, exp: 10,
+            drop: { id: "slash", rate: 0.01 },
+            skills: ["attack"] // 敵が使うスキルのリスト
+        },
+        goblin: {
+            id: "goblin", name: "ゴブリン", hp: 120, pAtk: 15, pDef: 10, mAtk: 5, mDef: 5, spd: 12, exp: 25,
+            drop: { id: "slash", rate: 0.02 },
+            skills: ["attack", "slash"] // 斬撃も使えるようにしておく
+        },
+        bat: {
+            id: "bat", name: "コウモリ", hp: 40, pAtk: 12, pDef: 3, mAtk: 5, mDef: 10, spd: 20, exp: 10,
+            drop: { id: "magic_bullet", rate: 0.02 },
+            skills: ["attack", "magic_bullet"]
+        },
+        skeleton: {
+            id: "skeleton", name: "スケルトン", hp: 120, pAtk: 20, pDef: 15, mAtk: 0, m_def: 0, spd: 5, exp: 10,
+            drop: { id: "slash", rate: 0.05 },
+            skills: ["attack", "slash"]
+        }
     }
 };

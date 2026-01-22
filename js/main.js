@@ -5,6 +5,7 @@ class GameController {
         // 1. まず各マネージャーのインスタンスを作成（空の状態でよい）
         this.skillManager = new SkillManager();
         this.battleSystem = new BattleSystem();
+        this.hasJoinedBonusChara = false;
 
         // 2. 次にデータをロード（ここで skillManager の中身が上書きされる）
         this.loadGame();
@@ -28,7 +29,8 @@ class GameController {
         const saveData = {
             party: this.party.map(c => ({ id: c.id, name: c.name, data: c.serialize() })),
             // 在庫データを保存対象に追加
-            skillInventory: this.skillManager.inventory
+            skillInventory: this.skillManager.inventory,
+            hasJoinedBonusChara: this.hasJoinedBonusChara // フラグを保存
         };
         localStorage.setItem(this.SAVE_KEY, JSON.stringify(saveData));
     }
@@ -45,6 +47,7 @@ class GameController {
                 if (parsed.skillInventory) {
                     this.skillManager.inventory = parsed.skillInventory;
                 }
+                this.hasJoinedBonusChara = parsed.hasJoinedBonusChara || false; // 復元
             } catch (e) {
                 console.error("セーブデータの読み込みに失敗しました", e);
                 this.party = [new Character(1, "Hero")];
@@ -403,7 +406,42 @@ class GameController {
         }
     }
 
-    // updatePartyUI の最後や changeScene('title') 内で呼び出す
+    checkLevelEvents() {
+        // パーティにLv10以上のキャラがいて、まだボーナスキャラが加入していない場合
+        if (!this.hasJoinedBonusChara && this.party.some(c => c.level >= 10)) {
+            this.addNewAlly();
+        }
+    }
+
+    addNewAlly() {
+        const newId = Date.now(); // 重複しないIDを生成
+        const newChara = new Character(newId, "Mage"); // 新しい仲間
+        this.party.push(newChara);
+        this.hasJoinedBonusChara = true;
+
+        // 通知演出
+        this.showNotification("新たな仲間「Mage」がパーティに加わりました！");
+        this.saveGame();
+        this.updatePartyUI();
+    }
+
+    showNotification(message) {
+        // バトルログがある場合はそこに出し、なければアラート
+        const logEl = document.getElementById('battle-log');
+        if (logEl) {
+            const div = document.createElement('div');
+            div.style.color = "#00ffff";
+            div.style.fontWeight = "bold";
+            div.style.border = "1px solid #00ffff";
+            div.style.padding = "5px";
+            div.style.margin = "10px 0";
+            div.innerText = `【EVENT】${message}`;
+            logEl.appendChild(div);
+            logEl.scrollTop = logEl.scrollHeight;
+        } else {
+            alert(message);
+        }
+    }
 
     // 長押し中の処理
     runBattle() {
@@ -451,6 +489,8 @@ class GameController {
                     document.getElementById('battle-log').appendChild(dropDiv);
                 }
             });
+
+            this.checkLevelEvents();
 
             this.saveGame();
             this.currentEnemies = [];
