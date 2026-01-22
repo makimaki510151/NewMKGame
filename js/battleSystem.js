@@ -130,11 +130,15 @@ class BattleSystem {
         } else {
             let dmg = 0;
             if (skill.type === "physical") {
-                dmg = Math.max(1, (aStats.pAtk * skill.power) - (dStats.pDef * 0.5));
+                // ダメージ / 防御力 の形式に変更
+                const rawDmg = aStats.pAtk * skill.power;
+                dmg = rawDmg / Math.max(1, dStats.pDef);
             } else if (skill.type === "magical") {
-                dmg = Math.max(1, (aStats.mAtk * skill.power) - (dStats.mDef * 0.5));
+                // ダメージ / 防御力 の形式に変更
+                const rawDmg = aStats.mAtk * skill.power;
+                dmg = rawDmg / Math.max(1, dStats.mDef);
             }
-            dmg = Math.floor(dmg);
+            dmg = Math.max(1, Math.floor(dmg));
             dStats.hp -= dmg;
             logs.push(`${attackerName}の[${skill.name}]！ ${targetName}に ${dmg} のダメージ！`);
 
@@ -196,11 +200,13 @@ class BattleSystem {
             return { log: `[追撃] ${target.data.name}のHPを ${dmgOrHeal} 回復！` };
         } else {
             if (skill.type === "physical") {
-                dmgOrHeal = Math.max(1, (aStats.pAtk * skill.power) - (dStats.pDef * 0.5));
+                const rawDmg = aStats.pAtk * skill.power;
+                dmgOrHeal = rawDmg / Math.max(1, dStats.pDef);
             } else if (skill.type === "magical") {
-                dmgOrHeal = Math.max(1, (aStats.mAtk * skill.power) - (dStats.mDef * 0.5));
+                const rawDmg = aStats.mAtk * skill.power;
+                dmgOrHeal = rawDmg / Math.max(1, dStats.mDef);
             }
-            dmgOrHeal = Math.floor(dmgOrHeal);
+            dmgOrHeal = Math.max(1, Math.floor(dmgOrHeal));
             dStats.hp -= dmgOrHeal;
             return { log: `[追撃] ${target.data.name}に ${dmgOrHeal} ダメージ！` };
         }
