@@ -2,7 +2,7 @@ async function initDiscord() {
     // Discord環境かどうかチェック
     if (typeof Discord === 'undefined') return null;
 
-    const discordSdk = new Discord.DiscordSDK("YOUR_CLIENT_ID_HERE"); // Discord Developer Portalで取得したID
+    const discordSdk = new Discord.DiscordSDK("1463810591675125800"); // Discord Developer Portalで取得したID
     
     await discordSdk.ready();
     console.log("Discord SDK is ready");
