@@ -144,10 +144,8 @@ button:active {
     color: var(--accent);
 }
 
-/* かけら・スロットのバグ修正 (背景白/文字黒で固定) */
+/* かけら・スロット */
 .fragment-slot, .fragment-item {
-    background: #ffffff !important; /* 真っ白背景 */
-    color: #000000 !important;      /* 真っ黒文字 */
     padding: 10px;
     margin: 6px 0;
     border-radius: 6px;

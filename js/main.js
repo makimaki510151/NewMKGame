@@ -316,7 +316,7 @@ class GameController {
                 // renderEquipScene 内の displayFrags.forEach 部分
                 displayFrags.forEach(frag => {
                     const fDiv = document.createElement('div');
-                    fDiv.style = "border-bottom:1px solid #eee; padding:8px; font-size:0.8em; background:#f9f9f9; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;";
+                    fDiv.style = "border-bottom:1px solid #eee; padding:8px; font-size:0.8em; background:#f9f9f9; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; color:#000;";
 
                     // 効果説明のテキスト
                     const effectDetails = frag.effects.map(e => {
