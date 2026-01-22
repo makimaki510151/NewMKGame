@@ -21,9 +21,17 @@ class Character {
         // 保存データがあれば上書き
         if (savedData) {
             Object.assign(this, savedData);
-            // オブジェクト形式への変換ガード（前回提示分）
-            if (this.skills && typeof this.skills[0] === 'string') {
-                this.skills = this.skills.map(sId => ({ id: sId, currentCoolDown: 0, condition: "always" }));
+            // オブジェクト形式への変換ガード
+            if (this.skills) {
+                this.skills = this.skills.map(s => {
+                    // 文字列形式だった場合のケア
+                    if (typeof s === 'string') {
+                        return { id: s, currentCoolDown: 0, condition: "always", slots: [null, null, null] };
+                    }
+                    // slotsがない場合の補完
+                    if (!s.slots) s.slots = [null, null, null];
+                    return s;
+                });
             }
         }
     }
