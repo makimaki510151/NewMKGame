@@ -164,13 +164,7 @@ class GameController {
         const attackBtn = document.getElementById('btn-attack-hold');
         if (!attackBtn) return;
 
-        // 単押しクリックの対応
-        attackBtn.addEventListener('click', () => {
-            if (this.currentScene === 'battle') {
-                this.runBattle();
-            }
-        });
-
+        // clickイベントによる即時実行を廃止し、gameLoopに統合
         // 長押し対応（マウス）
         attackBtn.addEventListener('mousedown', () => { this.isPressing = true; });
         window.addEventListener('mouseup', () => { this.isPressing = false; });
@@ -514,7 +508,7 @@ class GameController {
     }
 
     changeSkillCondition(charaId, skillIndex, newCondition) {
-        const chara = this.party.find(c => c.id === charaId);
+        const chara = this.party.find(c => charaId === c.id);
         if (chara) {
             chara.skills[skillIndex].condition = newCondition;
             this.saveGame();
@@ -594,20 +588,6 @@ class GameController {
         // キーボード（Space等）も同様
     }
 
-    generateRandomEnemy() {
-        const encounters = this.currentMap.encounters;
-        const enemyGroupIds = encounters[Math.floor(Math.random() * encounters.length)];
-
-        // 敵データを作成（個別にHPを管理するためコピーを作成）
-        this.currentEnemies = enemyGroupIds.map(id => {
-            const data = MASTER_DATA.ENEMIES[id];
-            return { ...data, currentHp: data.hp }; // 敵側のHPプロパティ名はbattleSystemに合わせる
-        });
-
-        const names = this.currentEnemies.map(e => e.name).join(", ");
-        document.getElementById('enemy-display').innerText = `${names} が現れた！`;
-    }
-
     gameLoop(timeStamp) {
         if (this.isPressing && this.currentScene === 'battle') {
             const elapsed = timeStamp - this.lastBattleTime;
@@ -628,6 +608,8 @@ class GameController {
         this.currentMap = map;
         this.changeScene('battle');
         this.generateRandomEnemy();
+        // マップに入った時点で一戦実行
+        this.runBattle();
     }
 
     generateRandomEnemy() {
