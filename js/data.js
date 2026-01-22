@@ -58,14 +58,14 @@ const MASTER_DATA = {
                 ["goblin"]
             ]
         },
-        // {
-        //     id: "cemetery",
-        //     name: "古い墓地",
-        //     encounters: [
-        //         ["skeleton"],
-        //         ["bat", "bat"]
-        //     ]
-        // }
+        {
+            id: "cemetery",
+            name: "古い墓地",
+            encounters: [
+                ["skeleton"],
+                ["bat", "bat"]
+            ]
+        }
     ],
     ENEMIES: {
         debug: {
@@ -76,12 +76,12 @@ const MASTER_DATA = {
         slime: {
             id: "slime", name: "スライム", hp: 50, pAtk: 10, pDef: 5, mAtk: 5, mDef: 5, spd: 8, exp: 5,
             drop: { id: "slash", rate: 0.01 },
-            skills: ["attack"] // 敵が使うスキルのリスト
+            skills: ["attack"]
         },
         goblin: {
             id: "goblin", name: "ゴブリン", hp: 240, pAtk: 30, pDef: 20, mAtk: 10, mDef: 20, spd: 30, exp: 5,
             drop: { id: "slash", rate: 0.02 },
-            skills: ["attack", "slash"] // 斬撃も使えるようにしておく
+            skills: ["attack", "slash"]
         },
         bat: {
             id: "bat", name: "コウモリ", hp: 120, pAtk: 10, pDef: 25, mAtk: 50, mDef: 30, spd: 50, exp: 5,
@@ -89,7 +89,7 @@ const MASTER_DATA = {
             skills: ["attack", "magic_bullet"]
         },
         skeleton: {
-            id: "skeleton", name: "スケルトン", hp: 120, pAtk: 20, pDef: 15, mAtk: 0, m_def: 0, spd: 5, exp: 5,
+            id: "skeleton", name: "スケルトン", hp: 400, pAtk: 80, pDef: 120, mAtk: 0, m_def: 120, spd: 100, exp: 5,
             drop: { id: "slash", rate: 0.05 },
             skills: ["attack", "slash"]
         }
