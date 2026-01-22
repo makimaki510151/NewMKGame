@@ -16,8 +16,19 @@
         <hr>
 
         <section id="scene-title">
-            <div id="party-area"></div>
-            <button id="btn-go-adventure">冒険に出かける</button>
+            <div class="main-menu">
+                <button id="btn-go-adventure" class="menu-button">冒険に出かける</button>
+                <button id="btn-go-equip" class="menu-button">スキル装備・管理</button>
+            </div>
+        </section>
+
+        <section id="scene-equip" class="hidden">
+            <h2>スキル装備</h2>
+            <div id="equip-container">
+                <div id="equip-party-list"></div>
+                <div id="equip-inventory-list"></div>
+            </div>
+            <button class="btn-back">拠点に戻る</button>
         </section>
 
         <section id="scene-map-select" class="hidden">

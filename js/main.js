@@ -9,6 +9,7 @@ class GameController {
         this.currentScene = 'title';
         this.currentMap = null;
         this.currentEnemy = null;
+        this.selectedCharaId = null;
 
         this.skillManager = new SkillManager();
         this.battleSystem = new BattleSystem();
@@ -21,7 +22,8 @@ class GameController {
 
     saveGame() {
         const saveData = {
-            party: this.party.map(c => ({ id: c.id, name: c.name, data: c.serialize() }))
+            party: this.party.map(c => ({ id: c.id, name: c.name, data: c.serialize() })),
+            inventory: this.skillManager.inventory // インベントリを保存対象に追加
         };
         localStorage.setItem(this.SAVE_KEY, JSON.stringify(saveData));
     }
@@ -29,16 +31,12 @@ class GameController {
     loadGame() {
         const rawData = localStorage.getItem(this.SAVE_KEY);
         if (rawData) {
-            try {
-                const parsed = JSON.parse(rawData);
-                // 保存データを元に、Characterクラスのインスタンスとして作り直す
-                this.party = parsed.party.map(p => new Character(p.id, p.name, p.data));
-            } catch (e) {
-                console.error("セーブデータの読み込みに失敗しました", e);
-                this.party = [new Character(1, "Hero")];
-            }
+            const parsed = JSON.parse(rawData);
+            this.party = parsed.party.map(p => new Character(p.id, p.name, p.data));
+            this.skillManager = new SkillManager(parsed.inventory); // 在庫を復元
         } else {
             this.party = [new Character(1, "Hero")];
+            this.skillManager = new SkillManager();
         }
     }
 
@@ -55,6 +53,11 @@ class GameController {
         const btnGo = document.getElementById('btn-go-adventure');
         if (btnGo) {
             btnGo.onclick = () => this.changeScene('map-select');
+        }
+
+        const btnEquip = document.getElementById('btn-go-equip'); // HTMLに追加が必要
+        if (btnEquip) {
+            btnEquip.onclick = () => this.changeScene('equip');
         }
 
         document.querySelectorAll('.btn-back').forEach(btn => {
@@ -101,13 +104,115 @@ class GameController {
 
     changeScene(sceneId) {
         this.currentScene = sceneId;
-        // 画面の表示/非表示を切り替え
         document.getElementById('scene-title').classList.toggle('hidden', sceneId !== 'title');
         document.getElementById('scene-map-select').classList.toggle('hidden', sceneId !== 'map-select');
         document.getElementById('scene-battle').classList.toggle('hidden', sceneId !== 'battle');
+        document.getElementById('scene-equip').classList.toggle('hidden', sceneId !== 'equip');
 
-        if (sceneId === 'title') {
+        if (sceneId === 'equip') {
+            this.renderEquipScene();
+        } else {
             this.updatePartyUI();
+        }
+    }
+
+    renderEquipScene() {
+        const partyList = document.getElementById('equip-party-list');
+        const invList = document.getElementById('equip-inventory-list');
+        if (!partyList || !invList) return;
+
+        // 左側：キャラクター選択と装備スロット
+        partyList.innerHTML = '<h3>キャラクター選択</h3>';
+        this.party.forEach(chara => {
+            const div = document.createElement('div');
+            div.className = `equip-chara-card ${this.selectedCharaId === chara.id ? 'selected' : ''}`;
+
+            let skillSlots = '';
+            if (Array.isArray(chara.skills)) {
+                chara.skills.forEach((sInfo, index) => {
+                    const sId = typeof sInfo === 'string' ? sInfo : sInfo.id;
+                    const sData = MASTER_DATA.SKILLS[sId];
+                    if (!sData) return;
+
+                    const isAttack = sId === 'attack';
+                    const currentCond = sInfo.condition || 'always';
+
+                    let options = MASTER_DATA.SKILL_CONDITIONS.map(cond =>
+                        `<option value="${cond.id}" ${currentCond === cond.id ? 'selected' : ''}>${cond.name}</option>`
+                    ).join('');
+
+                    skillSlots += `
+                    <div class="skill-slot-item" style="border-bottom:1px solid #444; margin-bottom:5px; padding:5px;">
+                        <span>${sData.name}</span>
+                        <select onchange="gameApp.changeSkillCondition(${chara.id}, ${index}, this.value)" style="margin-left:5px;">${options}</select>
+                        ${!isAttack ? `<button onclick="gameApp.unequipSkill(${chara.id}, ${index})" style="margin-left:5px;">外す</button>` : '<small> (固定)</small>'}
+                    </div>`;
+                });
+            }
+
+            div.innerHTML = `<div><strong>${chara.name}</strong></div>${skillSlots}`;
+            div.onclick = (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+                this.selectedCharaId = chara.id;
+                this.renderEquipScene();
+            };
+            partyList.appendChild(div);
+        });
+
+        // 右側：在庫表示
+        invList.innerHTML = '<h3>所持スキル（クリックで装備）</h3>';
+        for (const [sId, count] of Object.entries(this.skillManager.inventory)) {
+            if (sId === 'attack' || count <= 0) continue;
+            const skillData = MASTER_DATA.SKILLS[sId];
+
+            const btn = document.createElement('button');
+            btn.style.display = 'block';
+            btn.style.width = '100%';
+            btn.style.margin = '5px 0';
+            btn.style.padding = '10px';
+            btn.innerText = `${skillData.name} (在庫:${count}個)`;
+
+            btn.onclick = () => this.equipSkill(sId);
+            invList.appendChild(btn);
+        }
+    }
+
+    // 足りなかったメソッドを補完
+    equipSkill(skillId) {
+        if (!this.selectedCharaId) return alert('キャラクターを左側から選択してください');
+        const chara = this.party.find(c => c.id === this.selectedCharaId);
+
+        // 最大スロット数を3（通常攻撃+自由枠2）に制限
+        if (chara.skills.length >= 3) return alert('スキル枠がいっぱいです。何かを外してください。');
+
+        if (this.skillManager.consume(skillId)) {
+            chara.skills.push({
+                id: skillId,
+                currentCoolDown: 0,
+                condition: 'always'
+            });
+            this.saveGame();
+            this.renderEquipScene();
+        }
+    }
+
+    unequipSkill(charaId, slotIndex) {
+        const chara = this.party.find(c => String(c.id) === String(charaId));
+        const skillObj = chara.skills[slotIndex];
+
+        if (skillObj.id === 'attack') return; // 通常攻撃は外せない
+
+        this.skillManager.refund(skillObj.id);
+        chara.skills.splice(slotIndex, 1);
+        this.saveGame();
+        this.renderEquipScene();
+    }
+
+    changeSkillCondition(charaId, skillIndex, newCondition) {
+        const chara = this.party.find(c => c.id === charaId);
+        if (chara) {
+            chara.skills[skillIndex].condition = newCondition;
+            this.saveGame();
         }
     }
 
@@ -150,6 +255,8 @@ class GameController {
 
             partyArea.appendChild(charaDiv);
         });
+
+        this.updateInventoryUI();
     }
 
     // 転生実行用メソッドを GameController に追加
@@ -244,6 +351,22 @@ class GameController {
         }
     }
 
+    updateInventoryUI() {
+        const invList = document.getElementById('skill-inventory-list');
+        if (!invList) return;
+        invList.innerHTML = '';
+
+        for (const [id, count] of Object.entries(this.skillManager.inventory)) {
+            if (id === 'attack') continue; // 通常攻撃は表示しない
+            const skillName = MASTER_DATA.SKILLS[id].name;
+            const div = document.createElement('div');
+            div.innerText = `${skillName}: ${count}個`;
+            invList.appendChild(div);
+        }
+    }
+
+    // updatePartyUI の最後や changeScene('title') 内で呼び出す
+
     // 長押し中の処理
     runBattle() {
         // 1. 敵がいない、または全滅している場合は「その場」で新しく生成
@@ -273,11 +396,22 @@ class GameController {
 
         // 6. 戦闘結果の反映
         if (result.winner === 'player') {
-            this.party.forEach(chara => {
-                chara.gainExp(result.exp);
+            this.party.forEach(chara => chara.gainExp(result.exp));
+
+            // ドロップ判定
+            this.currentEnemies.forEach(enemy => {
+                if (enemy.drop && Math.random() < enemy.drop.rate) {
+                    const skillId = enemy.drop.id;
+                    this.skillManager.addSkill(skillId);
+                    const skillName = MASTER_DATA.SKILLS[skillId].name;
+                    const dropDiv = document.createElement('div');
+                    dropDiv.innerText = `宝箱から [${skillName}] を手に入れた！`;
+                    dropDiv.style.color = "#ffff00";
+                    document.getElementById('battle-log').appendChild(dropDiv);
+                }
             });
+
             this.saveGame();
-            // 敵をクリア（次のrunBattleの冒頭で新しく生成される）
             this.currentEnemies = [];
         } else if (result.winner === 'enemy') {
             this.isPressing = false;

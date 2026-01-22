@@ -124,3 +124,59 @@
 .reincarnate-btn:hover {
     background-color: #fff;
 }
+
+#equip-container {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+}
+
+#equip-party-list,
+#equip-inventory-list {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 10px;
+    height: 400px;
+    overflow-y: auto;
+}
+
+.equip-chara-card {
+    border: 1px solid #ddd;
+    margin-bottom: 10px;
+    padding: 10px;
+    cursor: pointer;
+}
+
+.equip-chara-card.selected {
+    border-color: #007bff;
+    background-color: #e7f3ff;
+}
+
+.equip-chara-card button {
+    margin: 5px;
+    padding: 5px 10px;
+}
+
+.main-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+    padding: 20px;
+}
+
+.menu-button {
+    width: 250px;
+    padding: 15px;
+    font-size: 1.1em;
+    cursor: pointer;
+    background: #444;
+    color: white;
+    border: 2px solid #666;
+    border-radius: 4px;
+}
+
+.menu-button:hover {
+    background: #666;
+}
