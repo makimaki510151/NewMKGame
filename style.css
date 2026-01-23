@@ -280,3 +280,7 @@ button:active {
     background: #fff;
     margin-top: 5px;
 }
+
+#equip-inventory-list button {
+    margin-left: 5px;
+}

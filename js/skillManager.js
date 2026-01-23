@@ -47,6 +47,38 @@ class SkillManager {
         return false;
     }
 
+    combineAllSkills() {
+        let combinedAny = false;
+        let changed = true;
+
+        // 合成の結果、さらに上のレベルが合成可能になるため、変化がなくなるまでループ
+        while (changed) {
+            changed = false;
+            for (const skillId in this.inventory) {
+                if (skillId === 'attack') continue;
+
+                const levels = Object.keys(this.inventory[skillId]).map(Number).sort((a, b) => a - b);
+                for (const level of levels) {
+                    const count = this.inventory[skillId][level];
+                    if (count >= 2) {
+                        const pairs = Math.floor(count / 2);
+                        this.inventory[skillId][level] -= pairs * 2;
+                        this.addSkill(skillId, level + 1, pairs); // addSkillを複数個対応させるか、ループで回す
+
+                        // 今回のコードのaddSkillは+1固定なので、ここで調整
+                        for (let i = 1; i < pairs; i++) {
+                            this.addSkill(skillId, level + 1);
+                        }
+
+                        changed = true;
+                        combinedAny = true;
+                    }
+                }
+            }
+        }
+        return combinedAny;
+    }
+
     // 在庫があるか確認
     hasStock(skillId) {
         return this.inventory[skillId] > 0;

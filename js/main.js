@@ -288,6 +288,13 @@ class GameController {
 
         // 右側：所持スキルと合成
         invList.innerHTML = '<h3>所持スキル・合成</h3>';
+
+        const allCombineBtn = document.createElement('button');
+        allCombineBtn.innerText = "すべてのスキルを一括合成";
+        allCombineBtn.style = "width:100%; margin-bottom:10px; padding:10px; background:#eef; cursor:pointer;";
+        allCombineBtn.onclick = () => this.combineAllSkills();
+        invList.appendChild(allCombineBtn);
+
         for (const [sId, levels] of Object.entries(this.skillManager.inventory)) {
             if (sId === 'attack') continue;
             for (const [level, count] of Object.entries(levels)) {
@@ -458,6 +465,15 @@ class GameController {
             const sData = MASTER_DATA.SKILLS[skillId];
             this.saveGame();
             this.renderEquipScene();
+        }
+    }
+
+    combineAllSkills() {
+        if (this.skillManager.combineAllSkills()) {
+            this.saveGame();
+            this.renderEquipScene();
+        } else {
+            alert("合成可能なスキルがありません。");
         }
     }
 
