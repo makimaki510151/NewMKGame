@@ -6,6 +6,7 @@ class GameController {
     constructor() {
         this.SAVE_KEY = 'new_mkrpg_save_data';
         this.currentUser = null;
+        this.usedCodes = [];
 
         // 1. まず各マネージャーのインスタンスを作成（空の状態でよい）
         this.skillManager = new SkillManager();
@@ -73,6 +74,7 @@ class GameController {
         // セーブデータから在庫とかけらを復元
         this.skillManager = new SkillManager(data.skillInventory, data.fragmentInventory);
         this.hasJoinedBonusChara = data.hasJoinedBonusChara || false;
+        this.usedCodes = data.usedCodes || [];
     }
 
     // GameController 内の saveGame メソッドを修正
@@ -82,7 +84,8 @@ class GameController {
             party: this.party,
             inventory: this.skillManager.inventory,
             fragments: this.skillManager.fragments,
-            hasJoinedBonusChara: this.hasJoinedBonusChara
+            hasJoinedBonusChara: this.hasJoinedBonusChara,
+            usedCodes: this.usedCodes
         };
 
         // 2. ローカルストレージ（保険として残す）
@@ -102,6 +105,56 @@ class GameController {
                 console.error("クラウド保存失敗:", e);
             }
         }
+    }
+
+    openSecretCodeDialog() {
+        const code = prompt("秘密の合言葉を入力してください");
+        if (!code) return;
+
+        if (this.usedCodes.includes(code)) {
+            alert("その合言葉はすでに使用されています。");
+            return;
+        }
+
+        const reward = MASTER_DATA.SECRET_CODES[code];
+        if (reward) {
+            this.applySecretReward(reward, code);
+        } else {
+            alert("合言葉が正しくありません。");
+        }
+    }
+
+    applySecretReward(reward, code) {
+        // ステージ以外は即座に使用済みフラグを立てる
+        if (reward.type !== 'stage') {
+            this.usedCodes.push(code);
+        }
+
+        switch (reward.type) {
+            case 'skill':
+                this.skillManager.addSkill(reward.skillId, reward.level, 1);
+                alert(reward.message);
+                break;
+            case 'fragment':
+                const frag = {
+                    uniqueId: Date.now(),
+                    effects: reward.effects,
+                    isLocked: false
+                };
+                this.skillManager.fragments.push(frag);
+                alert(reward.message);
+                break;
+            case 'stage':
+                // ステージの場合は、戦闘開始直前に使用済みにする
+                if (confirm(reward.message + "\n挑戦しますか？（一度拠点に戻ると消滅します）")) {
+                    this.usedCodes.push(code);
+                    this.saveGame();
+                    const mapData = MASTER_DATA.SECRET_MAPS[reward.mapId];
+                    this.startBattle(mapData);
+                }
+                return; // stageの場合は下でsaveGameを呼ぶのでreturn
+        }
+        this.saveGame();
     }
 
     async syncCloudData() {
@@ -287,6 +340,11 @@ class GameController {
                 this.changeScene('title');
             };
         });
+
+        const btnSecret = document.getElementById('btn-secret-code');
+        if (btnSecret) {
+            btnSecret.onclick = () => this.openSecretCodeDialog();
+        }
 
         const mapList = document.getElementById('map-list');
         if (mapList) {

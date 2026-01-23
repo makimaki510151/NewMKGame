@@ -115,6 +115,15 @@ const MASTER_DATA = {
                 { id: "heal", level: 1, fragments: [], currentCoolDown: 0, condition: "hp_low" }
             ]
         },
+        metal_slime:{
+            id: "metal_slime", name: "金属スライム", hp: 10, pAtk: 1, pDef: 1000, mAtk: 1, mDef: 1000, spd: 100, exp: 100,
+            // 配列に変更
+            drops: [
+                { id: "slash", rate: 0.1 },
+                { id: "magic_bullet", rate: 0.1 }
+            ],
+            skills: [{ id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }]
+        },
         slime: {
             id: "slime", name: "スライム", hp: 50, pAtk: 10, pDef: 5, mAtk: 5, mDef: 5, spd: 8, exp: 5,
             drops: [{ id: "slash", rate: 0.01 }],
@@ -218,5 +227,32 @@ MASTER_DATA.JOBS = {
         name: "スカウト",
         description: "素早い動きで敵を翻弄する。速度が非常に伸びやすい。",
         weights: { hp: 20, pAtk: 15, pDef: 10, mAtk: 10, mDef: 10, spd: 35 } // 合計100
+    }
+};
+
+MASTER_DATA.SECRET_CODES = {
+    "贈り物": {
+        type: "fragment",
+        effects: ["power_up", "double_cast"],
+        message: "特別な輝きのかけらを手に入れた！"
+    },
+    "奥義": {
+        type: "skill",
+        skillId: "slash",
+        level: 5,
+        message: "強力なスキル [斬撃 Lv.5] を手に入れた！"
+    },
+    "きんきんきんぞく": {
+        type: "stage",
+        mapId: "metal_stage",
+        message: "甘美なる金属の世界へ…！"
+    }
+};
+
+MASTER_DATA.SECRET_MAPS = {
+    "metal_stage": {
+        id: "metal_stage",
+        name: "金属の世界（限定）",
+        encounters: [["metal_slime"]]
     }
 };
