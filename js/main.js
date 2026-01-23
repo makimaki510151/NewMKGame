@@ -827,14 +827,19 @@ class GameController {
 
             // ドロップ判定
             this.currentEnemies.forEach(enemy => {
-                if (enemy.drop && Math.random() < enemy.drop.rate) {
-                    const skillId = enemy.drop.id;
-                    this.skillManager.addSkill(skillId);
-                    const skillName = MASTER_DATA.SKILLS[skillId].name;
-                    const dropDiv = document.createElement('div');
-                    dropDiv.innerText = `宝箱から [${skillName}] を手に入れた！`;
-                    dropDiv.style.color = "#ffff00";
-                    document.getElementById('battle-log').appendChild(dropDiv);
+                // 従来の enemy.drop ではなく enemy.drops をループする
+                if (enemy.drops && Array.isArray(enemy.drops)) {
+                    enemy.drops.forEach(dropItem => {
+                        if (Math.random() < dropItem.rate) {
+                            const skillId = dropItem.id;
+                            this.skillManager.addSkill(skillId);
+                            const skillName = MASTER_DATA.SKILLS[skillId].name;
+                            const dropDiv = document.createElement('div');
+                            dropDiv.innerText = `宝箱から [${skillName}] を手に入れた！`;
+                            dropDiv.style.color = "#ffff00";
+                            document.getElementById('battle-log').appendChild(dropDiv);
+                        }
+                    });
                 }
             });
 

@@ -92,10 +92,15 @@ const MASTER_DATA = {
             ]
         }
     ],
+    // data.js の ENEMIES セクションを以下のように書き換えてください
     ENEMIES: {
         debug: {
             id: "debug", name: "デバッグ君", hp: 1, pAtk: 1, pDef: 1, mAtk: 1, mDef: 1, spd: 1, exp: 100,
-            drop: { id: "slash", rate: 0.5 },
+            // 配列に変更
+            drops: [
+                { id: "slash", rate: 0.5 },
+                { id: "magic_bullet", rate: 0.5 }
+            ],
             skills: [
                 { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
                 { id: "slash", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
@@ -105,14 +110,12 @@ const MASTER_DATA = {
         },
         slime: {
             id: "slime", name: "スライム", hp: 50, pAtk: 10, pDef: 5, mAtk: 5, mDef: 5, spd: 8, exp: 5,
-            drop: { id: "slash", rate: 0.01 },
-            skills: [
-                { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
-            ]
+            drops: [{ id: "slash", rate: 0.01 }],
+            skills: [{ id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }]
         },
         goblin: {
             id: "goblin", name: "ゴブリン", hp: 240, pAtk: 30, pDef: 20, mAtk: 10, mDef: 20, spd: 30, exp: 5,
-            drop: { id: "slash", rate: 0.02 },
+            drops: [{ id: "slash", rate: 0.02 }],
             skills: [
                 { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
                 { id: "slash", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
@@ -120,7 +123,7 @@ const MASTER_DATA = {
         },
         bat: {
             id: "bat", name: "コウモリ", hp: 120, pAtk: 10, pDef: 25, mAtk: 50, mDef: 30, spd: 50, exp: 5,
-            drop: { id: "magic_bullet", rate: 0.02 },
+            drops: [{ id: "magic_bullet", rate: 0.02 }],
             skills: [
                 { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
                 { id: "magic_bullet", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
@@ -128,7 +131,7 @@ const MASTER_DATA = {
         },
         skeleton: {
             id: "skeleton", name: "スケルトン", hp: 400, pAtk: 80, pDef: 120, mAtk: 1, mDef: 120, spd: 10, exp: 5,
-            drop: { id: "slash", rate: 0.05 },
+            drops: [{ id: "slash", rate: 0.05 }],
             skills: [
                 { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
                 { id: "slash", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
@@ -136,14 +139,12 @@ const MASTER_DATA = {
         },
         ghost: {
             id: "ghost", name: "ゴースト", hp: 150, pAtk: 1, pDef: 200, mAtk: 60, mDef: 150, spd: 40, exp: 5,
-            drop: { id: "magic_bullet", rate: 0.05 },
-            skills: [
-                { id: "magic_bullet", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
-            ]
+            drops: [{ id: "magic_bullet", rate: 0.05 }],
+            skills: [{ id: "magic_bullet", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }]
         },
         fire_spirit: {
             id: "fire_spirit", name: "火の精霊", hp: 3000, pAtk: 200, pDef: 400, mAtk: 900, mDef: 600, spd: 600, exp: 5,
-            drop: { id: "fire_ball", rate: 0.03 },
+            drops: [{ id: "fire_ball", rate: 0.03 }],
             skills: [
                 { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
                 { id: "fire_ball", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
@@ -151,7 +152,7 @@ const MASTER_DATA = {
         },
         magma_golem: {
             id: "magma_golem", name: "マグマゴーレム", hp: 12000, pAtk: 1500, pDef: 2000, mAtk: 500, mDef: 1000, spd: 50, exp: 5,
-            drop: { id: "shield_bash", rate: 0.05 },
+            drops: [{ id: "shield_bash", rate: 0.05 }],
             skills: [
                 { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
                 { id: "shield_bash", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
@@ -159,7 +160,10 @@ const MASTER_DATA = {
         },
         armored_knight: {
             id: "armored_knight", name: "重装騎士", hp: 8000, pAtk: 1100, pDef: 2500, mAtk: 100, mDef: 1500, spd: 250, exp: 5,
-            drop: { id: "shield_bash", rate: 0.08 },
+            drops: [
+                { id: "slash", rate: 0.05 },
+                { id: "shield_bash", rate: 0.08 }
+            ],
             skills: [
                 { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
                 { id: "slash", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
@@ -168,7 +172,11 @@ const MASTER_DATA = {
         },
         high_wizard: {
             id: "high_wizard", name: "ハイウィザード", hp: 5000, pAtk: 100, pDef: 500, mAtk: 1800, mDef: 2500, spd: 700, exp: 5,
-            drop: { id: "prayer", rate: 0.05 },
+            drops: [
+                { id: "magic_bullet", rate: 0.1 },
+                { id: "fire_ball", rate: 0.05 },
+                { id: "prayer", rate: 0.05 }
+            ],
             skills: [
                 { id: "magic_bullet", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
                 { id: "fire_ball", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
