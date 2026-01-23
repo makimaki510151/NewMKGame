@@ -308,32 +308,53 @@ class GameController {
         // 一括合成ボタン
         const allCombineBtn = document.createElement('button');
         allCombineBtn.innerText = "すべてのスキルを一括合成";
-        allCombineBtn.className = "menu-button"; // スタイル調整
+        allCombineBtn.className = "menu-button";
         allCombineBtn.style = "width:100%; margin-bottom:10px; padding:10px; cursor:pointer;";
         allCombineBtn.onclick = () => this.combineAllSkills();
         container.appendChild(allCombineBtn);
 
+        // スクロールエリアの作成（かけらリストと同じスタイル）
+        const scrollBox = document.createElement('div');
+        scrollBox.className = "fragment-scroll-container";
+        scrollBox.style = "height:400px; overflow-y:auto; border:1px solid #eee; background:#fff; border-radius:4px;";
+
+        let hasSkill = false;
         // スキル在庫の表示
         for (const [sId, levels] of Object.entries(this.skillManager.inventory)) {
-            if (sId === 'attack' || sId === 'scrap') continue;
+            if (sId === 'attack' || sId === 'scrap' || sId === 'count') continue;
             for (const [level, count] of Object.entries(levels)) {
                 if (count <= 0) continue;
+                hasSkill = true;
                 const lvlInt = parseInt(level);
+                // データの取得（party[0]を基準にする）
                 const sData = this.party[0].getSkillEffectiveData({ id: sId, level: lvlInt });
 
                 const itemDiv = document.createElement('div');
-                itemDiv.style = "border-bottom:1px solid #eee; padding:8px; display:flex; justify-content:space-between; align-items:center; font-size:0.9em;";
+                // かけらリスト(fDiv)と同じスタイル
+                itemDiv.style = "border-bottom:1px solid #eee; padding:8px; font-size:0.8em; background:#f9f9f9; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; color:#000;";
+
                 itemDiv.innerHTML = `
-                <div><strong>${sData.name}</strong> (在庫:${count})<br><small>威力:${(Math.floor(sData.power * 10) / 10).toFixed(1)} / CT:${(Math.floor(sData.coolTime * 10) / 10).toFixed(1)}</small></div>
                 <div>
-                    <button onclick="gameApp.equipSkill('${sId}', ${lvlInt})">装備</button>
-                    ${count >= 2 ? `<button onclick="gameApp.combineSkill('${sId}', ${lvlInt})" style="background:#eef;">合成</button>` : ''}
+                    <strong>${sData.name}</strong> (Lv.${lvlInt})<br>
+                    <small>威力:${(Math.floor(sData.power * 10) / 10).toFixed(1)} / CT:${(Math.floor(sData.coolTime * 10) / 10).toFixed(1)}</small><br>
+                    <small style="color:#666;">所持数: ${count}</small>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px; min-width:60px;">
+                    <button onclick="gameApp.equipSkill('${sId}', ${lvlInt})" style="font-size:0.8em; padding:4px;">装備</button>
+                    ${count >= 2 ? `<button onclick="gameApp.combineSkill('${sId}', ${lvlInt})" style="font-size:0.8em; padding:4px; background:#eef;">合成</button>` : ''}
                 </div>`;
-                container.appendChild(itemDiv);
+                scrollBox.appendChild(itemDiv);
             }
         }
+
+        if (!hasSkill) {
+            scrollBox.innerHTML = `<div style="font-size:0.8em; color:#999; padding:10px; text-align:center;">所持スキルはありません</div>`;
+        }
+
+        container.appendChild(scrollBox);
+
         requestAnimationFrame(() => {
-            container.scrollTop = savedScrollTop;
+            scrollBox.scrollTop = savedScrollTop;
         });
     }
 
