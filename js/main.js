@@ -204,15 +204,17 @@ class GameController {
     renderEquipScene() {
         const partyList = document.getElementById('equip-party-list');
         const invList = document.getElementById('equip-inventory-list');
-        if (!partyList || !invList) return;
+        const fragList = document.getElementById('equip-fragment-list'); // 追加
+        if (!partyList || !invList || !fragList) return;
 
-        // スクロール位置の保存
-        const scrollBoxOld = invList.querySelector('.fragment-scroll-container');
+        // スクロール位置の保存（かけらリスト用）
+        const scrollBoxOld = fragList.querySelector('.fragment-scroll-container');
         const savedScrollTop = scrollBoxOld ? scrollBoxOld.scrollTop : 0;
 
         // 各セクションの描画
         this.renderEquipPartyList(partyList);
-        this.renderEquipInventory(invList, savedScrollTop);
+        this.renderEquipInventory(invList); // 引数からスクロール位置を削除
+        this.renderFragmentList(fragList, savedScrollTop); // かけらリストを独立して描画
     }
 
     // 左側：キャラクターと装備スキルの描画
@@ -293,7 +295,8 @@ class GameController {
     }
 
     // 右側：インベントリ全体の描画
-    renderEquipInventory(container, savedScrollTop) {
+    renderEquipInventory(container) {
+        const savedScrollTop = container.scrollTop;
         container.innerHTML = '<h3>所持スキル・合成</h3>';
 
         // 屑の表示
@@ -329,69 +332,70 @@ class GameController {
                 container.appendChild(itemDiv);
             }
         }
-
-        // かけらリストの描画
-        this.renderFragmentList(container, savedScrollTop);
+        requestAnimationFrame(() => {
+            container.scrollTop = savedScrollTop;
+        });
     }
 
     // かけらリスト部分の描画（フィルタ・ソート・ドラッグ元）
     renderFragmentList(container, savedScrollTop) {
+        // コンテナをクリアして二重スクロールを防止
+        container.innerHTML = '';
+
         const fragSection = document.createElement('div');
-        fragSection.style.marginTop = "20px";
+        fragSection.style.marginTop = "0px";
 
         // フィルタ・ソートUI
         fragSection.innerHTML = `
-        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; border-bottom:2px solid #ccc; padding-bottom:5px;">
-            <h4 style="margin:0;">所持中のかけら</h4>
-            <div style="display:flex; gap:5px; align-items:center;">
-                <label style="font-size:0.7em; color:#fff;"><input type="checkbox" id="frag-filter-locked" ${this.fragmentFilterLocked ? 'checked' : ''}> ロック中のみ</label>
-                <select id="frag-filter-select" style="font-size:0.7em; color:#000;">
-                    <option value="all" ${this.fragmentFilterEffect === 'all' ? 'selected' : ''}>すべて表示</option>
-                    ${Object.entries(MASTER_DATA.FRAGMENT_EFFECTS).map(([id, info]) => `<option value="${id}" ${this.fragmentFilterEffect === id ? 'selected' : ''}>${info.name}</option>`).join('')}
-                </select>
-                <select id="frag-sort-select" style="font-size:0.7em; color:#000;">
-                    <option value="newest" ${this.fragmentSortType === 'newest' ? 'selected' : ''}>新しい順</option>
-                    <option value="effect_count_desc" ${this.fragmentSortType === 'effect_count_desc' ? 'selected' : ''}>効果数：多</option>
-                    <option value="effect_count_asc" ${this.fragmentSortType === 'effect_count_asc' ? 'selected' : ''}>効果数：少</option>
-                </select>
-            </div>
-        </div>`;
+    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; border-bottom:2px solid #ccc; padding-bottom:5px; margin-bottom:10px;">
+        <h4 style="margin:0;">所持中のかけら</h4>
+        <div style="display:flex; gap:5px; align-items:center;">
+            <label style="font-size:0.7em; color:#fff; cursor:pointer;">
+                <input type="checkbox" id="frag-filter-locked" ${this.fragmentFilterLocked ? 'checked' : ''}> ロック中のみ
+            </label>
+            <select id="frag-filter-select" style="font-size:0.7em; color:#000;">
+                <option value="all" ${this.fragmentFilterEffect === 'all' ? 'selected' : ''}>すべて表示</option>
+                ${Object.entries(MASTER_DATA.FRAGMENT_EFFECTS).map(([id, info]) =>
+            `<option value="${id}" ${this.fragmentFilterEffect === id ? 'selected' : ''}>${info.name}</option>`
+        ).join('')}
+            </select>
+            <select id="frag-sort-select" style="font-size:0.7em; color:#000;">
+                <option value="newest" ${this.fragmentSortType === 'newest' ? 'selected' : ''}>新しい順</option>
+                <option value="effect_count_desc" ${this.fragmentSortType === 'effect_count_desc' ? 'selected' : ''}>効果数：多</option>
+                <option value="effect_count_asc" ${this.fragmentSortType === 'effect_count_asc' ? 'selected' : ''}>効果数：少</option>
+            </select>
+        </div>
+    </div>`;
 
         const scrollBox = document.createElement('div');
         scrollBox.className = "fragment-scroll-container";
-        scrollBox.style = "height:300px; overflow-y:auto; border:1px solid #eee; background:#fff;";
+        scrollBox.style = "height:400px; overflow-y:auto; border:1px solid #eee; background:#fff; border-radius:4px;";
 
         // フィルタリングとソート
-        // 装備済みIDのセットを取得
-        const equippedIds = this.getAllEquippedFragmentIds(); // 装備済みを取得
-
+        const equippedIds = this.getAllEquippedFragmentIds();
         let displayFrags = [...this.skillManager.fragments];
 
-        // --- 修正ポイント：装備済みのものはリストに出さない ---
+        // 1. 装備済み除外
         displayFrags = displayFrags.filter(f => !equippedIds.has(String(f.uniqueId)));
 
-        // その後のフィルタ（ロック、効果）を適用
-        if (this.fragmentFilterLocked) {
-            displayFrags = displayFrags.filter(f => f.isLocked);
-        }
+        // 2. フィルタ
+        if (this.fragmentFilterLocked) displayFrags = displayFrags.filter(f => f.isLocked);
+        if (this.fragmentFilterEffect !== 'all') displayFrags = displayFrags.filter(f => f.effects.includes(this.fragmentFilterEffect));
 
-        // 既存のエフェクトフィルター
-        if (this.fragmentFilterEffect !== 'all') {
-            displayFrags = displayFrags.filter(f => f.effects.includes(this.fragmentFilterEffect));
-        }
-
+        // 3. ソート
         if (this.fragmentSortType === 'effect_count_desc') displayFrags.sort((a, b) => b.effects.length - a.effects.length);
         else if (this.fragmentSortType === 'effect_count_asc') displayFrags.sort((a, b) => a.effects.length - b.effects.length);
         else if (this.fragmentSortType === 'newest') displayFrags.sort((a, b) => b.uniqueId - a.uniqueId);
 
         if (displayFrags.length === 0) {
-            scrollBox.innerHTML = `<div style="font-size:0.8em; color:#999; padding:10px;">該当するかけらはありません</div>`;
+            scrollBox.innerHTML = `<div style="font-size:0.8em; color:#999; padding:10px; text-align:center;">該当するかけらはありません</div>`;
         } else {
             displayFrags.forEach(frag => {
                 const fDiv = document.createElement('div');
-                fDiv.draggable = true; // ドラッグ可能に設定
+                fDiv.draggable = !frag.isLocked; // ロック中はドラッグ不可にする（任意）
                 fDiv.ondragstart = (e) => e.dataTransfer.setData('text/plain', frag.uniqueId);
-                fDiv.style = "border-bottom:1px solid #eee; padding:8px; font-size:0.8em; background:#f9f9f9; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; color:#000; cursor:grab;";
+
+                fDiv.style = `border-bottom:1px solid #eee; padding:8px; font-size:0.8em; background:#f9f9f9; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; color:#000; cursor:${frag.isLocked ? 'default' : 'grab'};`;
 
                 const effectDetails = frag.effects.map(e => {
                     const info = MASTER_DATA.FRAGMENT_EFFECTS[e];
@@ -399,13 +403,19 @@ class GameController {
                     return `<span style="color:${isMatch ? '#007bff' : '#d32f2f'}; font-weight:bold;">【${info.name}】</span>${info.desc}`;
                 }).join("<br>");
 
+                // ロック状態に応じて削除ボタンの disabled と背景色を切り替え
                 fDiv.innerHTML = `
-                <div>輝きのかけら ${frag.isLocked ? '🔒' : ''}<br>${effectDetails}</div>
-                <div style="display:flex; flex-direction:column; gap:2px;">
-                    <button onclick="event.stopPropagation(); gameApp.openFragmentEnhanceModal(${JSON.stringify(frag).replace(/"/g, '&quot;')})" style="font-size:0.8em;">強化</button>
-                    <button onclick="event.stopPropagation(); gameApp.toggleFragmentLock('${frag.uniqueId}')" style="font-size:0.8em;">${frag.isLocked ? "解除" : "ロック"}</button>
-                    <button onclick="event.stopPropagation(); gameApp.deleteFragment('${frag.uniqueId}')" style="font-size:0.8em; background:${frag.isLocked ? '#ccc' : '#ffcccc'};" ${frag.isLocked ? 'disabled' : ''}>削除</button>
-                </div>`;
+            <div>
+                <strong>輝きのかけら ${frag.isLocked ? '🔒' : ''}</strong><br>
+                ${effectDetails}
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px; min-width:60px;">
+                <button onclick="event.stopPropagation(); gameApp.openFragmentEnhanceModal(${JSON.stringify(frag).replace(/"/g, '&quot;')})" style="font-size:0.8em;">強化</button>
+                <button onclick="event.stopPropagation(); gameApp.toggleFragmentLock('${frag.uniqueId}')" style="font-size:0.8em;">${frag.isLocked ? "解除" : "ロック"}</button>
+                <button onclick="event.stopPropagation(); gameApp.deleteFragment('${frag.uniqueId}')" 
+                    style="font-size:0.8em; background:${frag.isLocked ? '#ccc' : '#ffcccc'}; color:${frag.isLocked ? '#888' : '#000'};" 
+                    ${frag.isLocked ? 'disabled' : ''}>削除</button>
+            </div>`;
                 scrollBox.appendChild(fDiv);
             });
         }
@@ -418,7 +428,9 @@ class GameController {
         fragSection.querySelector('#frag-filter-select').onchange = (e) => { this.fragmentFilterEffect = e.target.value; this.renderEquipScene(); };
         fragSection.querySelector('#frag-sort-select').onchange = (e) => { this.fragmentSortType = e.target.value; this.renderEquipScene(); };
 
-        scrollBox.scrollTop = savedScrollTop;
+        requestAnimationFrame(() => {
+            scrollBox.scrollTop = savedScrollTop;
+        });
     }
 
     /**
@@ -514,11 +526,11 @@ class GameController {
 
     // かけらのロック状態を切り替える
     toggleFragmentLock(uniqueId) {
-        const frag = this.skillManager.fragments.find(f => f.uniqueId === uniqueId);
+        const frag = this.skillManager.fragments.find(f => String(f.uniqueId) === String(uniqueId));
         if (frag) {
             frag.isLocked = !frag.isLocked;
             this.saveGame();
-            this.renderEquipScene();
+            this.renderEquipScene(); // これで画面が更新され、削除ボタンが disabled になります
         }
     }
 

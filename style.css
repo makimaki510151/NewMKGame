@@ -125,14 +125,57 @@ button:active {
 /* --- スキル装備画面 (スクロール修正 & かけら視認性向上) --- */
 #equip-container {
     display: flex;
-    flex-direction: column;
-    gap: 20px;
+    flex-direction: row;
+    /* 横並びに変更 */
+    gap: 15px;
+    align-items: flex-start;
+    overflow-x: auto;
+    /* 横幅が足りない場合にスクロール可能に */
+    padding-bottom: 20px;
 }
 
-/* リスト部分がスクロールするように修正 */
 #equip-party-list,
+#equip-fragment-list {
+    flex: 1;
+    /* 3等分 */
+    min-width: 300px;
+    /* 最小幅を確保 */
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    max-height: 80vh;
+    /* 画面内におさめる */
+    overflow-y: auto;
+    /* 縦スクロール */
+}
+
 #equip-inventory-list {
-    width: 100%;
+    flex: 1;
+    min-width: 300px;
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+
+    /* --- スクロールバーのための追加設定 --- */
+    max-height: 70vh;
+    /* 画面の高さの70%までに制限（状況に合わせて調整してください） */
+    overflow-y: auto;
+    /* 縦方向に内容が溢れたらスクロールバーを表示 */
+}
+
+#equip-inventory-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+#equip-inventory-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+#equip-inventory-list::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
 }
 
 .inventory-item {
@@ -301,7 +344,8 @@ button:active {
     padding: 8px;
     position: absolute;
     z-index: 1001;
-    bottom: 125%; /* 上方向に表示 */
+    bottom: 125%;
+    /* 上方向に表示 */
     left: 50%;
     transform: translateX(-50%);
     opacity: 0;
@@ -319,11 +363,17 @@ button:active {
 /* ポップアップUI用のスタイル */
 .modal-overlay {
     position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.7);
-    display: flex; justify-content: center; align-items: center;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
     z-index: 2000;
 }
+
 .modal-content {
     background: var(--card-bg);
     padding: 20px;
