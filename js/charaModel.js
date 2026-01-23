@@ -195,7 +195,7 @@ class Character {
         this.stats = { hp: 100, pAtk: 10, pDef: 10, mAtk: 10, mDef: 10, spd: 10 };
 
         // 転生ボーナスポイントの分配
-        let bonusPool = this.reincarnationCount * 20;
+        let bonusPool = this.reincarnationCount * 80;
         this.distributePoints(bonusPool);
     }
 }
