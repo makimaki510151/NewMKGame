@@ -183,7 +183,7 @@ class Character {
             } else {
                 this.stats[key] += add;
             }
-            bonusPool -= add;
+            bonusPool--;
         }
         this.fullHeal();
     }

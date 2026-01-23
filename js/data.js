@@ -47,6 +47,13 @@ const MASTER_DATA = {
         { id: "ally_dead", name: "味方が戦闘不能のとき使う" }
     ],
     MAPS: [
+        // {
+        //     id: "debug_room",
+        //     name: "デバッグルーム",
+        //     encounters: [
+        //         ["debug"]
+        //     ]
+        // },
         {
             id: "forest",
             name: "静かな森",
