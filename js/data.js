@@ -150,7 +150,7 @@ const MASTER_DATA = {
             skills: [{ id: "magic_bullet", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }]
         },
         fire_spirit: {
-            id: "fire_spirit", name: "火の精霊", hp: 3000, pAtk: 200, pDef: 400, mAtk: 900, mDef: 600, spd: 600, exp: 5,
+            id: "fire_spirit", name: "火の精霊", hp: 1000, pAtk: 20, pDef: 40, mAtk: 90, mDef: 60, spd: 60, exp: 5,
             drops: [{ id: "fire_ball", rate: 0.03 }],
             skills: [
                 { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
@@ -158,7 +158,7 @@ const MASTER_DATA = {
             ]
         },
         magma_golem: {
-            id: "magma_golem", name: "マグマゴーレム", hp: 12000, pAtk: 1500, pDef: 2000, mAtk: 500, mDef: 1000, spd: 50, exp: 5,
+            id: "magma_golem", name: "マグマゴーレム", hp: 1200, pAtk: 150, pDef: 200, mAtk: 50, mDef: 100, spd: 50, exp: 5,
             drops: [{ id: "shield_bash", rate: 0.05 }],
             skills: [
                 { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
