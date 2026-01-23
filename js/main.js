@@ -332,6 +332,7 @@ class GameController {
 
         if (sceneId === 'equip') {
             this.renderEquipScene();
+            this.updatePartyUI();
         } else {
             this.updatePartyUI();
         }
@@ -352,6 +353,7 @@ class GameController {
         this.renderEquipPartyList(partyList);
         this.renderEquipInventory(invList); // 引数からスクロール位置を削除
         this.renderFragmentList(fragList, savedScrollTop); // かけらリストを独立して描画
+
     }
 
     // 左側：キャラクターと装備スキルの描画
@@ -883,12 +885,14 @@ class GameController {
             const charaDiv = document.createElement('div');
             charaDiv.className = 'chara-status-card';
 
-            // 表示用のパーセント計算（内部数値が100を超えていても、表示は100%で止める）
+            const jobKey = chara.job || 'adventurer';
+            const jobData = MASTER_DATA.JOBS[jobKey];
             const expPercent = Math.min(100, (data.exp / data.maxExp) * 100);
 
-            charaDiv.innerHTML = `
+            // 基本情報の構築
+            let html = `
             <div class="chara-header">
-                <strong>${data.name}</strong> (Lv.${data.level} / 転生:${data.reincarnation})
+                <strong>${data.name}</strong> [${jobData.name}] (Lv.${data.level} / 転生:${data.reincarnation})
             </div>
             <div class="chara-exp">
                 EXP: ${Math.floor(data.exp)} / ${data.maxExp}
@@ -901,6 +905,9 @@ class GameController {
             </div>
         `;
 
+            charaDiv.innerHTML = html;
+
+            // 転生ボタン（タイトル画面のみ）
             if (data.level >= 100 && this.currentScene === 'title') {
                 const btn = document.createElement('button');
                 btn.className = 'reincarnate-btn';
@@ -909,10 +916,48 @@ class GameController {
                 charaDiv.appendChild(btn);
             }
 
+            // スキル変更画面のみプルダウンを表示
+            if (this.currentScene === 'equip') {
+                const jobEditArea = document.createElement('div');
+                jobEditArea.style.cssText = 'margin-top:8px; padding-top:8px; border-top:1px dashed var(--border); display:flex; align-items:center; gap:8px;';
+
+                // プルダウン作成
+                const select = document.createElement('select');
+                select.className = 'job-select-dropdown'; // CSSで装飾可能
+                select.style.cssText = 'background:#1e1e26; color:var(--text-main); border:1px solid var(--accent); border-radius:4px; padding:2px 5px; font-size:0.8em;';
+
+                for (let key in MASTER_DATA.JOBS) {
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    opt.innerText = MASTER_DATA.JOBS[key].name;
+                    opt.selected = (key === jobKey);
+                    select.appendChild(opt);
+                }
+
+                select.onchange = (e) => this.changeJob(chara.id, e.target.value);
+
+                // 説明テキスト（重み）
+                const w = jobData.weights;
+                const desc = document.createElement('span');
+                desc.style.cssText = 'font-size:0.7em; color:var(--text-sub);';
+                desc.innerText = `重み\nHP:${w.hp} | SPD:${w.spd}\n物攻:${w.pAtk} | 物防:${w.pDef}\n魔攻:${w.mAtk} | 魔防:${w.mDef}`;
+
+                jobEditArea.appendChild(select);
+                jobEditArea.appendChild(desc);
+                charaDiv.appendChild(jobEditArea);
+            }
+
             partyArea.appendChild(charaDiv);
         });
-
-        this.updateInventoryUI();
+    }
+    // 職業変更メソッドを GameController クラスに追加
+    changeJob(charaId, jobKey) {
+        const chara = this.party.find(c => c.id === charaId);
+        if (chara) {
+            chara.job = jobKey;
+            this.updatePartyUI(); // UIを即時更新
+            this.saveGame();      // 保存
+        }
     }
 
     // 転生実行用メソッドを GameController に追加

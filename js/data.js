@@ -197,3 +197,26 @@ MASTER_DATA.FRAGMENT_DROP_CHANCE = 0.1;
 MASTER_DATA.FRAGMENT_GROUPS = {
     group1: ["power_up", "ct_down", "quick_step", "life_steal", "meditation", "heavy", "double_cast", "berserk"],
 };
+
+MASTER_DATA.JOBS = {
+    adventurer: {
+        name: "冒険者",
+        description: "平均的な能力を持つ。すべてのステータスがバランスよく成長する。",
+        weights: { hp: 20, pAtk: 16, pDef: 16, mAtk: 16, mDef: 16, spd: 16 } // 合計100
+    },
+    warrior: {
+        name: "戦士",
+        description: "物理攻撃と耐久力に優れた職業。HPと物理攻撃が伸びやすい。",
+        weights: { hp: 30, pAtk: 30, pDef: 20, mAtk: 5, mDef: 5, spd: 10 } // 合計100
+    },
+    mage: {
+        name: "魔導士",
+        description: "魔法の扱いに長けた職業。魔法攻撃と魔法防御が伸びやすい。",
+        weights: { hp: 15, pAtk: 5, pDef: 10, mAtk: 35, mDef: 25, spd: 10 } // 合計100
+    },
+    scout: {
+        name: "スカウト",
+        description: "素早い動きで敵を翻弄する。速度が非常に伸びやすい。",
+        weights: { hp: 20, pAtk: 15, pDef: 10, mAtk: 10, mDef: 10, spd: 35 } // 合計100
+    }
+};

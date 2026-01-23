@@ -2,6 +2,7 @@ class Character {
     constructor(id, name, savedData = null) {
         this.id = id;
         this.name = name;
+        this.job = "adventurer";
         this.level = 1;
         this.reincarnationCount = 0;
         this.exp = 0;
@@ -32,6 +33,30 @@ class Character {
                     if (!s.slots) s.slots = [null, null, null];
                     return s;
                 });
+            }
+            if (!this.job) this.job = "adventurer";
+        }
+    }
+
+    distributePoints(points) {
+        const weights = MASTER_DATA.JOBS[this.job || 'adventurer'].weights;
+        const statKeys = Object.keys(weights);
+        const totalWeight = statKeys.reduce((sum, key) => sum + weights[key], 0);
+
+        for (let i = 0; i < points; i++) {
+            let rnd = Math.random() * totalWeight;
+            let current = 0;
+            for (let key of statKeys) {
+                current += weights[key];
+                if (rnd <= current) {
+                    if (key === 'hp') {
+                        this.currentMaxHp += 10;
+                        this.stats.hp += 10;
+                    } else {
+                        this.stats[key] += 1;
+                    }
+                    break;
+                }
             }
         }
     }
@@ -108,13 +133,13 @@ class Character {
 
     gainExp(amount) {
         this.exp += amount;
-        console.log(`${this.name} gained ${amount} exp. Current: ${this.exp}/${this.maxExp}`);
-
-        while (this.exp >= this.maxExp && this.level < 100) {
-            this.level++;
+        while (this.exp >= this.maxExp) {
             this.exp -= this.maxExp;
-            this.levelUpStats();
-            console.log(`${this.name} leveled up to ${this.level}!`);
+            this.level++;
+            this.maxExp = 100;
+
+            // レベルアップ時の成長（例：5ポイントを職業の重みで分配）
+            this.distributePoints(5);
         }
     }
 
@@ -164,27 +189,11 @@ class Character {
         this.reincarnationCount++;
         this.level = 1;
         this.exp = 0;
-
-        // ボーナスポイントの計算 (転生回数 × 20)
-        let bonusPool = this.reincarnationCount * 20;
-
-        // 初期ステータスの再設定
         this.currentMaxHp = 100;
         this.stats = { hp: 100, pAtk: 10, pDef: 10, mAtk: 10, mDef: 10, spd: 10 };
 
-        // ボーナスポイントをランダムなステータスに割り振る
-        const statKeys = ['currentMaxHp', 'pAtk', 'pDef', 'mAtk', 'mDef', 'spd'];
-        while (bonusPool > 0) {
-            const key = statKeys[Math.floor(Math.random() * statKeys.length)];
-            const add = Math.min(bonusPool, 5); // 5ポイントずつ割り振り
-            if (key === 'currentMaxHp') {
-                this.currentMaxHp += add;
-                this.stats.hp = this.currentMaxHp;
-            } else {
-                this.stats[key] += add;
-            }
-            bonusPool--;
-        }
-        this.fullHeal();
+        // 転生ボーナスポイントの分配
+        let bonusPool = this.reincarnationCount * 20;
+        this.distributePoints(bonusPool);
     }
 }
