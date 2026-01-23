@@ -331,6 +331,7 @@ button:active {
 .tooltip {
     position: relative;
     display: inline-block;
+    /* ツールチップが親の overflow に負けないように z-index を管理 */
 }
 
 .tooltip .tooltip-text {
@@ -342,17 +343,24 @@ button:active {
     border: 1px solid var(--accent);
     border-radius: 6px;
     padding: 8px;
-    position: absolute;
-    z-index: 1001;
-    bottom: 125%;
-    /* 上方向に表示 */
-    left: 50%;
-    transform: translateX(-50%);
+    position: fixed;
+    /* absolute から fixed に変更 */
+    z-index: 9999;
+    /* 十分に大きな値に設定 */
+
+    bottom: auto;
+    left: auto;
+    transform: none;
+    
+    /* 少し隙間を空けたい場合は margin-bottom を追加 */
+    margin-bottom: 8px;
     opacity: 0;
     transition: opacity 0.3s;
-    font-size: 0.8rem;
     pointer-events: none;
-    white-space: pre-wrap;
+    /* マウスイベントを邪魔しない */
+
+    white-space: pre-wrap; 
+    word-wrap: break-word;
 }
 
 .tooltip:hover .tooltip-text {

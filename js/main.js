@@ -84,6 +84,25 @@ class GameController {
             };
         }
 
+        // 全体的な制御として document または特定のコンテナに追加
+        document.addEventListener('mousemove', (e) => {
+            const tooltips = document.querySelectorAll('.tooltip:hover .tooltip-text');
+            tooltips.forEach(tooltip => {
+                // マウス位置から少しずらして表示（指やカーソルに被らないように）
+                const offsetX = 15;
+                const offsetY = -15;
+
+                // 画面の端でツールチップが切れないための簡易計算
+                let x = e.clientX + offsetX;
+                let y = e.clientY + offsetY;
+
+                // ツールチップの底辺をマウスに合わせる指示なので、
+                // Y座標をツールの高さ分マイナス方向に調整
+                tooltip.style.left = x + 'px';
+                tooltip.style.top = (y - tooltip.offsetHeight) + 'px';
+            });
+        });
+
         // ループを開始（一度だけ呼び出す）
         requestAnimationFrame(this.gameLoop);
     }
@@ -269,7 +288,7 @@ class GameController {
                              ondragover="event.preventDefault();"
                              ondrop="gameApp.handleDropFragment(event, '${chara.id}', ${sIndex}, ${slotIdx})">
                             ${label}
-                            <span class="tooltip-text">${detailText}${fragment ? '\n\n(クリックで外す)' : ''}</span>
+                            <span class="tooltip-text">${detailText}${fragment ? '<br><br>(クリックで外す)' : ''}</span>
                         </div>`;
                     });
                     fragmentSlotsHtml += '</div>';
@@ -413,7 +432,7 @@ class GameController {
         } else {
             displayFrags.forEach(frag => {
                 const fDiv = document.createElement('div');
-                fDiv.draggable = !frag.isLocked; // ロック中はドラッグ不可にする（任意）
+                fDiv.draggable = true;
                 fDiv.ondragstart = (e) => e.dataTransfer.setData('text/plain', frag.uniqueId);
 
                 fDiv.style = `border-bottom:1px solid #eee; padding:8px; font-size:0.8em; background:#f9f9f9; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; color:#000; cursor:${frag.isLocked ? 'default' : 'grab'};`;
@@ -643,16 +662,16 @@ class GameController {
             }).join('');
 
             fragListHtml += `
-            <div class="fragment-selection-item" 
-                 style="padding:12px; border-bottom:1px solid #444; cursor:pointer; transition: background 0.2s;"
-                 onclick="gameApp.attachFragment('${charaId}', ${skillIndex}, ${slotIndex}, '${f.uniqueId}')"
-                 onmouseover="this.style.backgroundColor='#333'"
-                 onmouseout="this.style.backgroundColor='transparent'">
-                <div style="font-weight:bold; color:var(--accent); margin-bottom:4px;">${f.name}</div>
-                <div style="font-size:0.85rem; color:var(--text-sub); line-height:1.4;">
-                    ${effectDetails}
-                </div>
-            </div>`;
+    <div class="fragment-selection-item" 
+         style="padding:12px; border-bottom:1px solid #444; cursor:pointer; transition: background 0.2s;"
+         onclick="gameApp.attachFragment('${charaId}', ${skillIndex}, ${slotIndex}, '${f.uniqueId}'); document.getElementById('fragment-picker-modal').remove();"
+         onmouseover="this.style.backgroundColor='#333'"
+         onmouseout="this.style.backgroundColor='transparent'">
+        <div style="font-weight:bold; color:var(--accent); margin-bottom:4px;">${f.name}</div>
+        <div style="font-size:0.85rem; color:var(--text-sub); line-height:1.4;">
+            ${effectDetails}
+        </div>
+    </div>`;
         });
 
         const modal = document.createElement('div');
