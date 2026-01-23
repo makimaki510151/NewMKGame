@@ -1189,7 +1189,6 @@ class GameController {
             div.innerText = msg;
             logEl.appendChild(div);
         });
-        logEl.scrollTop = logEl.scrollHeight;
 
         // 6. 戦闘結果の反映
         if (result.winner === 'player') {
@@ -1234,6 +1233,7 @@ class GameController {
             this.currentEnemies = [];
         }
 
+        logEl.scrollTop = logEl.scrollHeight;
         this.updatePartyUI();
     }
 }
