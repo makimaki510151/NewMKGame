@@ -651,6 +651,13 @@ class GameController {
         if (!this.selectedCharaId) return alert('キャラクターを選択してください');
         const chara = this.party.find(c => String(c.id) === String(this.selectedCharaId)); // ID比較を安全に
 
+        // 同じIDのスキル（レベル違い含む）が既に装備されているかチェック
+        const isAlreadyEquipped = chara.skills.some(s => s.id === skillId);
+        if (isAlreadyEquipped) {
+            alert('同じスキルを複数装備することはできません。');
+            return;
+        }
+
         if (this.skillManager.consume(skillId, level)) {
             chara.skills.push({
                 id: skillId,
