@@ -8,6 +8,70 @@ class SkillManager {
             heal: { 0: 0 }
         };
         this.fragments = savedFragments || [];
+        if (!this.inventory.scrap) {
+            this.inventory.scrap = { count: 0 };
+        }
+    }
+
+    get scrapCount() {
+        return this.inventory.scrap.count || 0;
+    }
+
+    // 屑の所持数を設定するセッター
+    set scrapCount(value) {
+        this.inventory.scrap.count = value;
+    }
+
+    deleteFragment(uniqueId) {
+        // IDが一致する要素のインデックスを探す
+        const index = this.fragments.findIndex(f => String(f.uniqueId) === String(uniqueId));
+
+        if (index !== -1) {
+            const fragment = this.fragments[index];
+            // 屑を増やす（効果の数に応じた個数）
+            const gainScrap = fragment.effects.length;
+            this.scrapCount += gainScrap;
+
+            // 指定したインデックスの1件のみを削除
+            this.fragments.splice(index, 1);
+
+            return { success: true, gain: gainScrap };
+        }
+        return { success: false };
+    }
+
+    // 必要コストの計算（同類0:100, 1:300, 2:500）
+    calculateScrapCost(fragment, effectId) {
+        const sameEffectCount = fragment.effects.filter(e => e === effectId).length;
+        if (sameEffectCount === 0) return 100;
+        if (sameEffectCount === 1) return 300;
+        if (sameEffectCount === 2) return 500;
+        return 9999;
+    }
+
+    // 任意の効果を付与する
+    addEffectToFragment(fragmentUniqueId, effectId, replaceIndex = -1) {
+        const fragment = this.fragments.find(f => f.uniqueId === fragmentUniqueId);
+        if (!fragment) return { success: false, message: "対象が見つかりません" };
+
+        const cost = this.calculateScrapCost(fragment, effectId);
+        if (this.scrapCount < cost) {
+            return { success: false, message: `屑が不足しています（必要: ${cost}）` };
+        }
+
+        // 屑を消費
+        this.scrapCount -= cost;
+
+        if (fragment.effects.length >= 3) {
+            // 3つ以上の場合は指定スロット（または最後）を上書き
+            const idx = (replaceIndex >= 0 && replaceIndex < 3) ? replaceIndex : 2;
+            fragment.effects[idx] = effectId;
+        } else {
+            // 空きがあれば追加
+            fragment.effects.push(effectId);
+        }
+
+        return { success: true, cost: cost };
     }
 
     dropFragment() {

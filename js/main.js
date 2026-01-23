@@ -289,6 +289,11 @@ class GameController {
         // 右側：所持スキルと合成
         invList.innerHTML = '<h3>所持スキル・合成</h3>';
 
+        const scrapDisplay = document.createElement('div');
+        scrapDisplay.style = "background:#2a2a36; color:#fff; padding:10px; border-radius:8px; margin-bottom:10px; text-align:center; border:1px solid var(--accent);";
+        scrapDisplay.innerHTML = `✨ かけらの屑: <strong>${this.skillManager.scrapCount}</strong>`;
+        invList.appendChild(scrapDisplay);
+
         const allCombineBtn = document.createElement('button');
         allCombineBtn.innerText = "すべてのスキルを一括合成";
         allCombineBtn.style = "width:100%; margin-bottom:10px; padding:10px; background:#eef; cursor:pointer;";
@@ -296,7 +301,7 @@ class GameController {
         invList.appendChild(allCombineBtn);
 
         for (const [sId, levels] of Object.entries(this.skillManager.inventory)) {
-            if (sId === 'attack') continue;
+            if (sId === 'attack' || sId === 'scrap') continue;
             for (const [level, count] of Object.entries(levels)) {
                 if (count <= 0) continue;
                 const lvlInt = parseInt(level);
@@ -390,24 +395,36 @@ class GameController {
                     const btnDiv = document.createElement('div');
                     btnDiv.style = "display:flex; flex-direction:column; gap:2px;";
 
+                    // 強化ボタンを追加
+                    const enhanceBtn = document.createElement('button');
+                    enhanceBtn.innerText = "強化";
+                    enhanceBtn.style.fontSize = "0.8em";
+                    enhanceBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        this.openFragmentEnhanceModal(frag);
+                    };
+
                     const lockBtn = document.createElement('button');
                     lockBtn.innerText = frag.isLocked ? "解除" : "ロック";
                     lockBtn.style.fontSize = "0.8em";
                     lockBtn.onclick = (e) => {
                         e.stopPropagation();
-                        this.toggleFragmentLock(frag.uniqueId); // toggleFragmentLockを実装してください
+                        this.toggleFragmentLock(frag.uniqueId);
                     };
 
                     const delBtn = document.createElement('button');
-                    delBtn.innerText = "削除";
+                    delBtn.innerText = "削除"; // 削除して屑にする
                     delBtn.style.fontSize = "0.8em";
                     delBtn.style.backgroundColor = frag.isLocked ? "#ccc" : "#ffcccc";
                     delBtn.disabled = frag.isLocked;
                     delBtn.onclick = (e) => {
                         e.stopPropagation();
-                        this.deleteFragment(frag.uniqueId); // deleteFragmentを実装してください
+                        this.deleteFragment(frag.uniqueId); // 内部で屑が増える
+                        this.saveGame();
+                        this.renderEquipScene();
                     };
 
+                    btnDiv.appendChild(enhanceBtn); // 追加
                     btnDiv.appendChild(lockBtn);
                     btnDiv.appendChild(delBtn);
                     fDiv.appendChild(infoDiv);
@@ -433,6 +450,60 @@ class GameController {
         }
     }
 
+    openFragmentEnhanceModal(fragment) {
+        const effectOptions = Object.entries(MASTER_DATA.FRAGMENT_EFFECTS).map(([id, info]) => {
+            const cost = this.skillManager.calculateScrapCost(fragment, id);
+            return `<option value="${id}">${info.name} (屑:${cost})</option>`;
+        }).join('');
+
+        const html = `
+        <div id="enhance-modal" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; color:#000; padding:20px; border:2px solid #444; z-index:2000; width:90%; max-width:400px; border-radius:12px;">
+            <h4>かけらの強化</h4>
+            <p style="font-size:0.8em;">付与したい効果を選択してください。<br>3つ以上の場合は上書きスロットを選んでください。</p>
+            
+            <label>付与する効果:</label><br>
+            <select id="enhance-effect-id" style="width:100%; padding:5px; margin-bottom:15px;">${effectOptions}</select>
+            
+            <label>上書きスロット (3つある場合のみ):</label><br>
+            <select id="enhance-replace-idx" style="width:100%; padding:5px; margin-bottom:15px;">
+                <option value="0">スロット1</option>
+                <option value="1">スロット2</option>
+                <option value="2">スロット3</option>
+            </select>
+
+            <div style="display:flex; gap:10px;">
+                <button id="btn-do-enhance" style="flex:1; padding:10px; background:#4caf50; color:white;">強化実行</button>
+                <button id="btn-cancel-enhance" style="flex:1; padding:10px; background:#ccc;">キャンセル</button>
+            </div>
+        </div>
+        <div id="enhance-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1999;"></div>
+    `;
+
+        document.body.insertAdjacentHTML('beforeend', html);
+
+        document.getElementById('btn-cancel-enhance').onclick = () => {
+            document.getElementById('enhance-modal').remove();
+            document.getElementById('enhance-overlay').remove();
+        };
+
+        document.getElementById('btn-do-enhance').onclick = () => {
+            const effectId = document.getElementById('enhance-effect-id').value;
+            const replaceIdx = parseInt(document.getElementById('enhance-replace-idx').value);
+
+            const result = this.skillManager.addEffectToFragment(fragment.uniqueId, effectId, replaceIdx);
+
+            if (result.success) {
+                alert(`強化完了！ 屑を ${result.cost} 消費しました。`);
+                document.getElementById('enhance-modal').remove();
+                document.getElementById('enhance-overlay').remove();
+                this.saveGame();
+                this.renderEquipScene();
+            } else {
+                alert(result.message);
+            }
+        };
+    }
+
     // かけらのロック状態を切り替える
     toggleFragmentLock(uniqueId) {
         const frag = this.skillManager.fragments.find(f => f.uniqueId === uniqueId);
@@ -445,18 +516,21 @@ class GameController {
 
     // かけらを削除する（確認ダイアログを廃止）
     deleteFragment(uniqueId) {
-        const index = this.skillManager.fragments.findIndex(f => f.uniqueId === uniqueId);
-        if (index === -1) return;
+        // 1. マネージャー側の削除メソッドを呼ぶ
+        const result = this.skillManager.deleteFragment(uniqueId);
 
-        const frag = this.skillManager.fragments[index];
+        if (result.success) {
+            // 2. セーブを実行（inventoryとfragmentsの両方が保存される）
+            this.saveGame();
 
-        // ロックされている場合は何もしない（アラートも出さないことで連続操作を妨げない）
-        if (frag.isLocked) return;
+            // 3. UIを再描画
+            this.renderEquipScene();
 
-        // 即座に削除を実行
-        this.skillManager.fragments.splice(index, 1);
-        this.saveGame();
-        this.renderEquipScene();
+            // オプション：ログを表示する場合
+            console.log(`かけらを分解しました。屑を ${result.gain} 個獲得しました。`);
+        } else {
+            alert("削除対象のかけらが見つかりませんでした。");
+        }
     }
 
     combineSkill(skillId, level) {
