@@ -133,13 +133,15 @@ class Character {
 
     gainExp(amount) {
         this.exp += amount;
-        while (this.exp >= this.maxExp) {
-            this.exp -= this.maxExp;
-            this.level++;
-            this.maxExp = 100;
+        if (this.level < 100) {
+            while (this.exp >= this.maxExp) {
+                this.exp -= this.maxExp;
+                this.level++;
+                this.maxExp = 100;
 
-            // レベルアップ時の成長（例：5ポイントを職業の重みで分配）
-            this.distributePoints(5);
+                // レベルアップ時の成長（例：5ポイントを職業の重みで分配）
+                this.distributePoints(5);
+            }
         }
     }
 
