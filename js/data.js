@@ -191,12 +191,12 @@ const MASTER_DATA = {
             drops: [
                 { id: "magic_bullet", rate: 0.1 },
                 { id: "fire_ball", rate: 0.05 },
-                { id: "prayer", rate: 0.05 }
+                { id: "heal", rate: 0.05 }
             ],
             skills: [
+                { id: "attack", level: 6, fragments: [], currentCoolDown: 0, condition: "always" },
                 { id: "magic_bullet", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
-                { id: "fire_ball", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
-                { id: "heal", level: 1, fragments: [], currentCoolDown: 0, condition: "hp_low" }
+                { id: "fire_ball", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
             ]
         }
     }
