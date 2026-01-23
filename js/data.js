@@ -34,7 +34,7 @@ const MASTER_DATA = {
         ct_down: { name: "神速", desc: "CT-15%", calc: (s) => s.coolTime *= 0.85 },
         life_steal: { name: "吸血", desc: "与ダメ5%回復", calc: (s) => s.lifeSteal = (s.lifeSteal || 0) + 0.05 },
         double_cast: { name: "追撃", desc: "10%で再発動", calc: (s) => s.doubleChance = (s.doubleChance || 0) + 0.1 },
-        berserk: { name: "諸刃", desc: "威力+50%/自傷5%", calc: (s) => { s.power *= 1.5; s.selfDamage = (s.selfDamage || 0) + 0.05 } },
+        berserk: { name: "諸刃", desc: "威力+50%/自傷2%", calc: (s) => { s.power *= 1.5; s.selfDamage = (s.selfDamage || 0) + 0.02 } },
         heavy: { name: "鈍重", desc: "威力+30%/CT+20%", calc: (s) => { s.power *= 1.3; s.coolTime *= 1.2 } },
         meditation: { name: "瞑想", desc: "威力-20%/自分回復", calc: (s) => { s.power *= 0.8; s.healSelf = true } },
         quick_step: { name: "軽業", desc: "SPD+5", calc: (s) => s.spdBonus = (s.spdBonus || 0) + 5 }
