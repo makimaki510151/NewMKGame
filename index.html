@@ -15,6 +15,22 @@
 
         <hr>
 
+        <section id="scene-auth" class="hidden">
+            <div class="auth-container">
+                <h2>クラウド保存を利用する</h2>
+                <div class="auth-form">
+                    <input type="email" id="auth-email" placeholder="メールアドレス">
+                    <input type="password" id="auth-password" placeholder="パスワード">
+                    <div class="auth-buttons">
+                        <button id="btn-do-login" class="menu-button">ログイン</button>
+                        <button id="btn-do-signup" class="menu-button">新規登録</button>
+                    </div>
+                    <button id="btn-auth-back" class="btn-back">ログインせずに遊ぶ</button>
+                </div>
+                <p id="auth-message" style="color: var(--accent);"></p>
+            </div>
+        </section>
+
         <section id="scene-title">
             <div class="main-menu">
                 <button id="btn-go-adventure" class="menu-button">冒険に出かける</button>
@@ -53,6 +69,7 @@
             <button class="btn-back">拠点に戻る</button>
         </section>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/data.js"></script>
     <script src="js/skillManager.js"></script>
     <script src="js/charaModel.js"></script>

@@ -1,11 +1,18 @@
+const SUPABASE_URL = 'https://aajqzjuxmtjqwprfikti.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_n4twHmtalxsk_7j2j2tnTg_GgVMGIKT';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 class GameController {
     constructor() {
         this.SAVE_KEY = 'new_mkrpg_save_data';
+        this.currentUser = null;
 
         // 1. まず各マネージャーのインスタンスを作成（空の状態でよい）
         this.skillManager = new SkillManager();
         this.battleSystem = new BattleSystem();
         this.hasJoinedBonusChara = false;
+
+        this.initAuthListener();
 
         // 2. 次にデータをロード（ここで skillManager の中身が上書きされる）
         this.loadGame();
@@ -27,6 +34,17 @@ class GameController {
         this.fragmentFilterLocked = false;
 
         this.init();
+    }
+
+    initAuthListener() {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                this.currentUser = session.user;
+                this.syncCloudData(); // ログインしたらクラウドと同期
+            } else {
+                this.currentUser = null;
+            }
+        });
     }
 
     async setupDiscord() {
@@ -58,14 +76,93 @@ class GameController {
     }
 
     // GameController 内の saveGame メソッドを修正
-    saveGame() {
+    async saveGame() {
+        // 1. 保存用データの構築
         const saveData = {
-            party: this.party.map(c => ({ id: c.id, name: c.name, data: c.serialize() })),
-            skillInventory: this.skillManager.inventory,
-            fragmentInventory: this.skillManager.fragments, // かけらリストを保存対象に追加
+            party: this.party,
+            inventory: this.skillManager.inventory,
+            fragments: this.skillManager.fragments,
             hasJoinedBonusChara: this.hasJoinedBonusChara
         };
+
+        // 2. ローカルストレージ（保険として残す）
         localStorage.setItem(this.SAVE_KEY, JSON.stringify(saveData));
+
+        // 3. ログイン中ならSupabaseへアップロード
+        if (this.currentUser) {
+            try {
+                await supabaseClient
+                    .from('player_saves')
+                    .upsert({
+                        id: this.currentUser.id,
+                        save_data: saveData,
+                        updated_at: new Date()
+                    });
+            } catch (e) {
+                console.error("クラウド保存失敗:", e);
+            }
+        }
+    }
+
+    async syncCloudData() {
+        if (!this.currentUser) return;
+
+        const { data, error } = await supabaseClient
+            .from('player_saves')
+            .select('save_data')
+            .single();
+
+        if (data && data.save_data) {
+            const cloudData = data.save_data;
+
+            if (cloudData.party) {
+                this.party = cloudData.party.map(d => new Character(d.id, d.name, d));
+            }
+            if (cloudData.inventory) {
+                this.skillManager.inventory = cloudData.inventory;
+            }
+            if (cloudData.fragments) {
+                this.skillManager.fragments = cloudData.fragments;
+            }
+            this.hasJoinedBonusChara = cloudData.hasJoinedBonusChara || false;
+
+            this.updatePartyUI();
+            console.log("クラウドからデータを復元しました");
+
+            // データ読み込み完了後、タイトル画面へ戻す
+            this.changeScene('title');
+        } else {
+            console.log("新規ユーザー：現在のデータをクラウドに同期します");
+            await this.saveGame();
+
+            // 初回保存完了後もタイトル画面へ戻す
+            this.changeScene('title');
+        }
+    }
+
+    async handleSignup() {
+        const email = document.getElementById('auth-email').value;
+        const password = document.getElementById('auth-password').value;
+        const { data, error } = await supabaseClient.auth.signUp({ email, password });
+
+        if (error) {
+            document.getElementById('auth-message').innerText = "登録失敗: " + error.message;
+        } else {
+            document.getElementById('auth-message').innerText = "登録完了。そのままログインしてください";
+        }
+    }
+
+    async handleLogin() {
+        const email = document.getElementById('auth-email').value;
+        const password = document.getElementById('auth-password').value;
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+        if (error) {
+            document.getElementById('auth-message').innerText = "ログイン失敗: " + error.message;
+        } else {
+            // ここではメッセージを出すだけにするか、何もしない（syncCloudDataで画面が変わるため）
+            document.getElementById('auth-message').innerText = "ログイン中...";
+        }
     }
 
     init() {
@@ -102,6 +199,21 @@ class GameController {
                 tooltip.style.top = (y - tooltip.offsetHeight) + 'px';
             });
         });
+
+        // init() メソッド内に追加
+        document.getElementById('btn-do-signup').addEventListener('click', () => this.handleSignup());
+        document.getElementById('btn-do-login').addEventListener('click', () => this.handleLogin());
+        document.getElementById('btn-auth-back').addEventListener('click', () => this.changeScene('title'));
+
+        // 拠点画面に「ログイン/同期」ボタンを追加する場合（任意）
+        const loginBtn = document.createElement('button');
+        loginBtn.innerText = "クラウド同期";
+        loginBtn.className = "menu-button";
+
+        // ここを修正：function(){} ではなく () => {} にする
+        loginBtn.onclick = () => this.changeScene('auth');
+
+        document.querySelector('#scene-title .main-menu').appendChild(loginBtn);
 
         // ループを開始（一度だけ呼び出す）
         requestAnimationFrame(this.gameLoop);
@@ -211,6 +323,12 @@ class GameController {
         document.getElementById('scene-map-select').classList.toggle('hidden', sceneId !== 'map-select');
         document.getElementById('scene-battle').classList.toggle('hidden', sceneId !== 'battle');
         document.getElementById('scene-equip').classList.toggle('hidden', sceneId !== 'equip');
+
+        // ログイン画面の切り替えを追加
+        const authScene = document.getElementById('scene-auth');
+        if (authScene) {
+            authScene.classList.toggle('hidden', sceneId !== 'auth');
+        }
 
         if (sceneId === 'equip') {
             this.renderEquipScene();
