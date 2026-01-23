@@ -67,39 +67,38 @@ class BattleSystem {
         const isPlayer = actor.type === 'player';
         const chara = actor.data;
 
-        // --- 1. 使用するスキルとデータの決定 ---
         let selectedSkillId = "attack";
-        let selectedSkillLevel = 0;
         let sInfoRef = null;
 
-        if (isPlayer) {
-            for (let i = chara.skills.length - 1; i >= 0; i--) {
-                const sInfo = chara.skills[i];
-                const sData = chara.getSkillEffectiveData(sInfo);
-                const isAvailable = (sInfo.currentCoolDown || 0) <= 0;
-                const isConditionMet = this.checkSkillCondition(chara, sInfo.condition || 'always', allUnits);
+        // 共通のスキルリスト取得
+        const skillList = isPlayer ? chara.skills : (chara.skills || []);
 
-                if (isAvailable && isConditionMet) {
-                    selectedSkillId = sInfo.id;
-                    selectedSkillLevel = sInfo.level || 0;
-                    sInfo.currentCoolDown = sData.coolTime || 0;
-                    sInfoRef = sInfo;
-                    break;
-                }
-            }
-            chara.updateCoolDowns();
-        } else {
-            if (chara.skills && chara.skills.length > 0) {
-                selectedSkillId = chara.skills[Math.floor(Math.random() * chara.skills.length)];
+        // 使用可能なスキルの選定（後ろからループして優先度の高いものをチェック）
+        for (let i = skillList.length - 1; i >= 0; i--) {
+            const sInfo = skillList[i];
+            const sData = isPlayer ? chara.getSkillEffectiveData(sInfo) : this.getEnemySkillData(sInfo);
+
+            const isAvailable = (sInfo.currentCoolDown || 0) <= 0;
+            const isConditionMet = this.checkSkillCondition(actor, sInfo.condition || 'always', allUnits);
+
+            if (isAvailable && isConditionMet) {
+                selectedSkillId = sInfo.id;
+                sInfoRef = sInfo;
+                // 使用したスキルのCTを設定
+                sInfo.currentCoolDown = sData.coolTime || 0;
+                break;
             }
         }
 
-        let skill;
-        if (isPlayer) {
-            skill = chara.getSkillEffectiveData(sInfoRef || { id: selectedSkillId, level: selectedSkillLevel });
-        } else {
-            skill = MASTER_DATA.SKILLS[selectedSkillId] || MASTER_DATA.SKILLS.attack;
-        }
+        // 行動ごとに全スキルのクールダウンを1減らす
+        skillList.forEach(s => {
+            if (s.currentCoolDown > 0) s.currentCoolDown--;
+        });
+
+        // 最終的なスキルデータの確定
+        const skill = isPlayer
+            ? chara.getSkillEffectiveData(sInfoRef || { id: selectedSkillId })
+            : this.getEnemySkillData(sInfoRef || { id: selectedSkillId });
 
         // --- 2. ターゲットの選定 ---
         let targets;
@@ -175,6 +174,39 @@ class BattleSystem {
         return { log: logs.join(" ") };
     }
 
+    // 敵のスキル情報をレベル・かけら込みの実行データに変換
+    getEnemySkillData(sInfo) {
+        const base = MASTER_DATA.SKILLS[sInfo.id] || MASTER_DATA.SKILLS.attack;
+        const level = sInfo.level || 1;
+        const fragments = sInfo.fragments || [];
+        const growth = base.growth || {};
+
+        // 1. 基本性能にレベル成長を適用
+        // growth: { power: 0.2, coolTime: -0.1 } のような設定を想定
+        let effective = {
+            ...base,
+            power: base.power + (growth.power || 0) * (level - 1),
+            coolTime: Math.max(0, (base.coolTime || 0) + (growth.coolTime || 0) * (level - 1)),
+            level: level
+        };
+
+        // 2. 輝きのかけらの効果を反映（最大9つ）
+        fragments.slice(0, 9).forEach(fragId => {
+            const fData = MASTER_DATA.FRAGMENTS[fragId];
+            if (!fData) return;
+
+            // 各種ステータス補正の合算
+            if (fData.powerMod) effective.power += fData.powerMod;
+            if (fData.coolTimeMod) effective.coolTime = Math.max(0, effective.coolTime + fData.coolTimeMod);
+            if (fData.doubleChance) effective.doubleChance = (effective.doubleChance || 0) + fData.doubleChance;
+            if (fData.selfDamage) effective.selfDamage = (effective.selfDamage || 0) + fData.selfDamage;
+            if (fData.lifeSteal) effective.lifeSteal = (effective.lifeSteal || 0) + fData.lifeSteal;
+            if (fData.healSelf) effective.healSelf = true; // 瞑想効果の付与
+        });
+
+        return effective;
+    }
+
     // 追撃専用の軽量メソッド（CT消費などを行わない）
     executeFollowUp(actor, skill, allUnits) {
         const isPlayer = actor.type === 'player';
@@ -214,8 +246,17 @@ class BattleSystem {
     }
 
     // スキルの使用条件を判定するヘルパー
-    checkSkillCondition(chara, condition, allUnits) {
-        const hpRate = chara.stats.hp / chara.currentMaxHp;
+    // スキルの使用条件を判定するヘルパー
+    checkSkillCondition(actor, condition, allUnits) {
+        const chara = actor.data;
+        const isPlayer = actor.type === 'player';
+
+        // ステータスと最大HPの取得先をタイプによって切り替え
+        const stats = isPlayer ? chara.stats : chara;
+        const maxHp = isPlayer ? chara.currentMaxHp : (chara.maxHp || chara.hp);
+
+        const hpRate = stats.hp / maxHp;
+
         const alivePlayers = allUnits.filter(u => u.type === 'player' && u.data.stats.hp > 0);
         const aliveEnemies = allUnits.filter(u => u.type === 'enemy' && u.data.hp > 0);
 

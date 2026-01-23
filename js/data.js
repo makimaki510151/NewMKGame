@@ -13,7 +13,7 @@ const MASTER_DATA = {
             growth: { power: 0.15 }
         },
         heal: {
-            id: "heal", name: "回復", type: "heal", power: 1.0, coolTime: 5,
+            id: "heal", name: "回復", type: "heal", power: 1.0, coolTime: 7,
             growth: { power: 0.2, coolTime: -0.1 }
         },
         fire_ball: {
@@ -96,52 +96,84 @@ const MASTER_DATA = {
         debug: {
             id: "debug", name: "デバッグ君", hp: 1, pAtk: 1, pDef: 1, mAtk: 1, mDef: 1, spd: 1, exp: 100,
             drop: { id: "slash", rate: 0.5 },
-            skills: ["attack", "slash", "magic_bullet", "heal"]
+            skills: [
+                { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "slash", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "magic_bullet", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "heal", level: 1, fragments: [], currentCoolDown: 0, condition: "hp_low" }
+            ]
         },
         slime: {
             id: "slime", name: "スライム", hp: 50, pAtk: 10, pDef: 5, mAtk: 5, mDef: 5, spd: 8, exp: 5,
             drop: { id: "slash", rate: 0.01 },
-            skills: ["attack"]
+            skills: [
+                { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
+            ]
         },
         goblin: {
-            id: "goblin", name: "ゴブリン", hp: 240, pAtk: 30, pDef: 20, mAtk: 10, mDef: 20, spd: 30, exp:5,
+            id: "goblin", name: "ゴブリン", hp: 240, pAtk: 30, pDef: 20, mAtk: 10, mDef: 20, spd: 30, exp: 5,
             drop: { id: "slash", rate: 0.02 },
-            skills: ["attack", "slash"]
+            skills: [
+                { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "slash", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
+            ]
         },
         bat: {
-            id: "bat", name: "コウモリ", hp: 120, pAtk: 10, pDef: 25, mAtk: 50, mDef: 30, spd: 50, exp:5,
+            id: "bat", name: "コウモリ", hp: 120, pAtk: 10, pDef: 25, mAtk: 50, mDef: 30, spd: 50, exp: 5,
             drop: { id: "magic_bullet", rate: 0.02 },
-            skills: ["attack", "magic_bullet"]
+            skills: [
+                { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "magic_bullet", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
+            ]
         },
         skeleton: {
-            id: "skeleton", name: "スケルトン", hp: 400, pAtk: 80, pDef: 120, mAtk: 1, mDef: 120, spd: 10, exp:5,
+            id: "skeleton", name: "スケルトン", hp: 400, pAtk: 80, pDef: 120, mAtk: 1, mDef: 120, spd: 10, exp: 5,
             drop: { id: "slash", rate: 0.05 },
-            skills: ["attack", "slash"]
+            skills: [
+                { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "slash", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
+            ]
         },
         ghost: {
-            id: "ghost", name: "ゴースト", hp: 150, pAtk: 1, pDef: 200, mAtk: 60, mDef: 150, spd: 40, exp:5,
+            id: "ghost", name: "ゴースト", hp: 150, pAtk: 1, pDef: 200, mAtk: 60, mDef: 150, spd: 40, exp: 5,
             drop: { id: "magic_bullet", rate: 0.05 },
-            skills: ["magic_bullet"]
+            skills: [
+                { id: "magic_bullet", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
+            ]
         },
         fire_spirit: {
-            id: "fire_spirit", name: "火の精霊", hp: 3000, pAtk: 200, pDef: 400, mAtk: 900, mDef: 600, spd: 600, exp:5,
+            id: "fire_spirit", name: "火の精霊", hp: 3000, pAtk: 200, pDef: 400, mAtk: 900, mDef: 600, spd: 600, exp: 5,
             drop: { id: "fire_ball", rate: 0.03 },
-            skills: ["attack", "fire_ball"]
+            skills: [
+                { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "fire_ball", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
+            ]
         },
         magma_golem: {
-            id: "magma_golem", name: "マグマゴーレム", hp: 12000, pAtk: 1500, pDef: 2000, mAtk: 500, mDef: 1000, spd: 50, exp:5,
+            id: "magma_golem", name: "マグマゴーレム", hp: 12000, pAtk: 1500, pDef: 2000, mAtk: 500, mDef: 1000, spd: 50, exp: 5,
             drop: { id: "shield_bash", rate: 0.05 },
-            skills: ["attack", "shield_bash"]
+            skills: [
+                { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "shield_bash", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
+            ]
         },
         armored_knight: {
-            id: "armored_knight", name: "重装騎士", hp: 8000, pAtk: 1100, pDef: 2500, mAtk: 100, mDef: 1500, spd: 250, exp:5,
+            id: "armored_knight", name: "重装騎士", hp: 8000, pAtk: 1100, pDef: 2500, mAtk: 100, mDef: 1500, spd: 250, exp: 5,
             drop: { id: "shield_bash", rate: 0.08 },
-            skills: ["attack", "slash", "shield_bash"]
+            skills: [
+                { id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "slash", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "shield_bash", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
+            ]
         },
         high_wizard: {
-            id: "high_wizard", name: "ハイウィザード", hp: 5000, pAtk: 100, pDef: 500, mAtk: 1800, mDef: 2500, spd: 700, exp:5,
+            id: "high_wizard", name: "ハイウィザード", hp: 5000, pAtk: 100, pDef: 500, mAtk: 1800, mDef: 2500, spd: 700, exp: 5,
             drop: { id: "prayer", rate: 0.05 },
-            skills: ["magic_bullet", "fire_ball", "heal"]
+            skills: [
+                { id: "magic_bullet", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "fire_ball", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "heal", level: 1, fragments: [], currentCoolDown: 0, condition: "hp_low" }
+            ]
         }
     }
 };

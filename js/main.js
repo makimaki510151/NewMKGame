@@ -22,7 +22,7 @@ class GameController {
 
         this.isPressing = false;
         this.canBattle = true;
-        this.fragmentSortType = 'default';
+        this.fragmentSortType = 'newest'; // 'default' から 'newest' に変更、または追記
         this.fragmentFilterEffect = 'all';
 
         this.init();
@@ -74,6 +74,14 @@ class GameController {
         document.getElementById('btn-change-name').addEventListener('click', () => {
             this.openNameChangeDialog();
         });
+
+        const sortSelect = document.getElementById('sort-fragments');
+        if (sortSelect) {
+            sortSelect.onchange = (e) => {
+                this.fragmentSortType = e.target.value;
+                this.renderEquipScene(); // 画面を再描画
+            };
+        }
 
         // ループを開始（一度だけ呼び出す）
         requestAnimationFrame(this.gameLoop);
@@ -197,8 +205,8 @@ class GameController {
         if (!partyList || !invList) return;
 
         // --- 1. 描画前に現在のスクロール位置を保存 ---
-        const oldScrollBox = document.querySelector('.fragment-scroll-container');
-        const savedScrollTop = oldScrollBox ? oldScrollBox.scrollTop : 0;
+        const scrollBoxOld = invList.querySelector('.fragment-scroll-container');
+        const savedScrollTop = scrollBoxOld ? scrollBoxOld.scrollTop : 0;
 
         partyList.innerHTML = '<h3>キャラクター選択</h3>';
         this.party.forEach(chara => {
@@ -311,20 +319,25 @@ class GameController {
             const fragSection = document.createElement('div');
             fragSection.style.marginTop = "20px";
 
+            // フィルタとソートのUI
             const filterHtml = `
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ccc; padding-bottom:5px;">
-            <h4 style="margin:0;">所持中のかけら</h4>
-            <div style="display:flex; gap:5px;">
-                <select id="frag-filter-select" onchange="gameApp.fragmentFilterEffect = this.value; gameApp.renderEquipScene();" style="font-size:0.7em; color:#000;">
-                    <option value="all">すべて表示</option>
-                    ${Object.entries(MASTER_DATA.FRAGMENT_EFFECTS).map(([id, info]) =>
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ccc; padding-bottom:5px;">
+                <h4 style="margin:0;">所持中のかけら</h4>
+                <div style="display:flex; gap:5px;">
+                    <select id="frag-filter-select" style="font-size:0.7em; color:#000;">
+                        <option value="all" ${this.fragmentFilterEffect === 'all' ? 'selected' : ''}>すべて表示</option>
+                        ${Object.entries(MASTER_DATA.FRAGMENT_EFFECTS).map(([id, info]) =>
                 `<option value="${id}" ${this.fragmentFilterEffect === id ? 'selected' : ''}>${info.name}</option>`
             ).join('')}
-                </select>
-                <button onclick="gameApp.fragmentSortType = 'name'; gameApp.sortFragments();" style="font-size:0.7em;">ソート</button>
+                    </select>
+                    <select id="frag-sort-select" style="font-size:0.7em; color:#000;">
+                        <option value="newest" ${this.fragmentSortType === 'newest' ? 'selected' : ''}>新しい順</option>
+                        <option value="effect_count_desc" ${this.fragmentSortType === 'effect_count_desc' ? 'selected' : ''}>効果数：多</option>
+                        <option value="effect_count_asc" ${this.fragmentSortType === 'effect_count_asc' ? 'selected' : ''}>効果数：少</option>
+                    </select>
+                </div>
             </div>
-        </div>
-        `;
+            `;
             fragSection.innerHTML = filterHtml;
 
             const scrollBox = document.createElement('div');
@@ -332,11 +345,23 @@ class GameController {
             scrollBox.style.height = "300px";
             scrollBox.style.overflowY = "auto";
             scrollBox.style.border = "1px solid #eee";
-            scrollBox.style.background = "#fff"; // 視認性のため
+            scrollBox.style.background = "#fff";
 
-            let displayFrags = this.skillManager.fragments;
+            // --- データのフィルタリングとソート ---
+            let displayFrags = [...this.skillManager.fragments];
+
+            // フィルタ
             if (this.fragmentFilterEffect !== 'all') {
                 displayFrags = displayFrags.filter(f => f.effects.includes(this.fragmentFilterEffect));
+            }
+
+            // ソート
+            if (this.fragmentSortType === 'effect_count_desc') {
+                displayFrags.sort((a, b) => b.effects.length - a.effects.length);
+            } else if (this.fragmentSortType === 'effect_count_asc') {
+                displayFrags.sort((a, b) => a.effects.length - b.effects.length);
+            } else if (this.fragmentSortType === 'newest') {
+                displayFrags.sort((a, b) => b.uniqueId - a.uniqueId);
             }
 
             if (displayFrags.length === 0) {
@@ -363,7 +388,7 @@ class GameController {
                     lockBtn.style.fontSize = "0.8em";
                     lockBtn.onclick = (e) => {
                         e.stopPropagation();
-                        this.toggleFragmentLock(frag.uniqueId);
+                        this.toggleFragmentLock(frag.uniqueId); // toggleFragmentLockを実装してください
                     };
 
                     const delBtn = document.createElement('button');
@@ -373,7 +398,7 @@ class GameController {
                     delBtn.disabled = frag.isLocked;
                     delBtn.onclick = (e) => {
                         e.stopPropagation();
-                        this.deleteFragment(frag.uniqueId);
+                        this.deleteFragment(frag.uniqueId); // deleteFragmentを実装してください
                     };
 
                     btnDiv.appendChild(lockBtn);
@@ -386,7 +411,17 @@ class GameController {
             fragSection.appendChild(scrollBox);
             invList.appendChild(fragSection);
 
-            // --- 3. 描画後にスクロール位置を復元 ---
+            // イベントリスナーの設定（再描画のためにthisを使用）
+            fragSection.querySelector('#frag-filter-select').onchange = (e) => {
+                this.fragmentFilterEffect = e.target.value;
+                this.renderEquipScene();
+            };
+            fragSection.querySelector('#frag-sort-select').onchange = (e) => {
+                this.fragmentSortType = e.target.value;
+                this.renderEquipScene();
+            };
+
+            // スクロール位置の復元
             scrollBox.scrollTop = savedScrollTop;
         }
     }

@@ -25,6 +25,14 @@
 
         <section id="scene-equip" class="hidden">
             <h2>スキル装備</h2>
+            <div class="controls-area">
+                <label>ソート：</label>
+                <select id="sort-fragments">
+                    <option value="newest">新しい順</option>
+                    <option value="effect_count_desc">効果数：多い順</option>
+                    <option value="effect_count_asc">効果数：少ない順</option>
+                </select>
+            </div>
             <div id="equip-container">
                 <div id="equip-party-list"></div>
                 <div id="equip-inventory-list"></div>
