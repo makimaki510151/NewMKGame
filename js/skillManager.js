@@ -166,4 +166,22 @@ class SkillManager {
             this.inventory[skillId][level] = (this.inventory[skillId][level] || 0) + 1;
         }
     }
+
+    // かけらをIDで取得し、リストから削除する（装備時に使用）
+    popFragment(uniqueId) {
+        const index = this.fragments.findIndex(f => String(f.uniqueId) === String(uniqueId));
+        if (index !== -1) {
+            return this.fragments.splice(index, 1)[0]; // リストから抜き出して返す
+        }
+        return null;
+    }
+
+    // かけらをリストに戻す（外した時に使用）
+    pushFragment(fragmentObj) {
+        if (!fragmentObj) return;
+        // 重複チェック（念のため）
+        if (!this.fragments.some(f => String(f.uniqueId) === String(fragmentObj.uniqueId))) {
+            this.fragments.push(fragmentObj);
+        }
+    }
 }
