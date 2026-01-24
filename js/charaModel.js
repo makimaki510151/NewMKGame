@@ -1,5 +1,5 @@
 class Character {
-    constructor(id, name, savedData = null) {
+    constructor(id, name, savedData) {
         this.id = id;
         this.name = name;
         this.job = "adventurer";

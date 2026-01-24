@@ -246,7 +246,6 @@ class BattleSystem {
     }
 
     // スキルの使用条件を判定するヘルパー
-    // スキルの使用条件を判定するヘルパー
     checkSkillCondition(actor, condition, allUnits) {
         const chara = actor.data;
         const isPlayer = actor.type === 'player';
