@@ -105,6 +105,16 @@ const MASTER_DATA = {
                 ["armored_knight", "ghost"],
                 ["high_wizard"]
             ]
+        },
+        {
+            id: "sanctuary",
+            name: "静寂の聖域",
+            fragmentGroupId: "group2",
+            encounters: [
+                ["holy_sentinel"],
+                ["holy_sentinel", "seraph_arc"],
+                ["seraph_arc", "seraph_arc"]
+            ]
         }
     ],
     // data.js の ENEMIES セクションを以下のように書き換えてください
@@ -205,6 +215,30 @@ const MASTER_DATA = {
                 { id: "attack", level: 6, fragments: [], currentCoolDown: 0, condition: "always" },
                 { id: "magic_bullet", level: 1, fragments: [], currentCoolDown: 0, condition: "always" },
                 { id: "fire_ball", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }
+            ]
+        },
+        holy_sentinel: {
+            id: "holy_sentinel", name: "聖域の番人", hp: 12000, pAtk: 2500, pDef: 3000, mAtk: 500, mDef: 3500, spd: 400, exp: 50,
+            drops: [
+                { id: "shield_bash", rate: 0.1 },
+                { id: "prayer", rate: 0.02 }
+            ],
+            skills: [
+                { id: "attack", level: 5, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "shield_bash", level: 3, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "heal", level: 5, fragments: [], currentCoolDown: 0, condition: "hp_low" }
+            ]
+        },
+        seraph_arc: {
+            id: "seraph_arc", name: "セラフ・アーク", hp: 8000, pAtk: 200, pDef: 1500, mAtk: 4000, mDef: 4000, spd: 1200, exp: 60,
+            drops: [
+                { id: "magic_bullet", rate: 0.15 },
+                { id: "prayer", rate: 0.05 }
+            ],
+            skills: [
+                { id: "magic_bullet", level: 8, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "fire_ball", level: 5, fragments: [], currentCoolDown: 0, condition: "always" },
+                { id: "prayer", level: 1, fragments: [], currentCoolDown: 0, condition: "hp_low" }
             ]
         }
     }
