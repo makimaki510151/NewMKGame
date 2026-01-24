@@ -37,7 +37,7 @@ const MASTER_DATA = {
         berserk: { name: "諸刃", desc: "威力+50%/自傷2%", calc: (s) => { s.power *= 1.5; s.selfDamage = (s.selfDamage || 0) + 0.02 } },
         heavy: { name: "鈍重", desc: "威力+30%/CT+20%", calc: (s) => { s.power *= 1.3; s.coolTime *= 1.2 } },
         meditation: { name: "瞑想", desc: "威力-20%/自身回復", calc: (s) => { s.power *= 0.8; s.healSelf = true } },
-        quick_step: { name: "軽業", desc: "SPD+15", calc: (s) => s.spdBonus = (s.spdBonus || 0) + 15 },
+        quick_step: { name: "軽業", desc: "威力-20%/CT-25%", calc: (s) => { s.power *= 0.8; s.coolTime *= 0.75 } },
         echo: { name: "残像", desc: "20%で再発動/威力-30%", calc: (s) => { s.doubleChance = (s.doubleChance || 0) + 0.2; s.power *= 0.7; } },
         dexterous: { name: "器用", desc: "威力+10%/CT-5%", calc: (s) => { s.power *= 1.1; s.coolTime *= 0.95 } },
         madness: { name: "狂気", desc: "威力+80%/自傷7%/CT-20%", calc: (s) => { s.power *= 1.8; s.selfDamage = (s.selfDamage || 0) + 0.07; s.coolTime *= 0.8 } },
