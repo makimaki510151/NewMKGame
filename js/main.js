@@ -72,7 +72,7 @@ class GameController {
         this.party = data.party.map(p => new Character(p.id, p.name, p));
 
         // セーブデータから在庫とかけらを復元
-        this.skillManager = new SkillManager(data.skillInventory, data.fragmentInventory);
+        this.skillManager = new SkillManager(data.inventory, data.fragments);
         this.hasJoinedBonusChara = data.hasJoinedBonusChara || false;
         this.usedCodes = data.usedCodes || [];
     }
