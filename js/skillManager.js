@@ -74,23 +74,23 @@ class SkillManager {
         return { success: true, cost: cost };
     }
 
-    dropFragment() {
+    dropFragment(groupId = "group1") {
         const fragment = {
             uniqueId: Date.now() + Math.random(),
             name: "輝きのかけら",
             effects: []
         };
 
+        // 指定されたグループが存在しない場合は group1 を参照
+        const effectPool = MASTER_DATA.FRAGMENT_GROUPS[groupId] || MASTER_DATA.FRAGMENT_GROUPS.group1;
+
         // 1〜3個の効果を抽選
         const count = Math.floor(Math.random() * 3) + 1;
         for (let i = 0; i < count; i++) {
-            // グループを統合して抽選
-            const allEffects = [
-                ...MASTER_DATA.FRAGMENT_GROUPS.group1
-            ];
-            const effect = allEffects[Math.floor(Math.random() * allEffects.length)];
+            const effect = effectPool[Math.floor(Math.random() * effectPool.length)];
             fragment.effects.push(effect);
         }
+
         this.fragments.push(fragment);
         return fragment;
     }

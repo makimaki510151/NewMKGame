@@ -1213,7 +1213,8 @@ class GameController {
             });
 
             if (Math.random() < MASTER_DATA.FRAGMENT_DROP_CHANCE) {
-                const frag = this.skillManager.dropFragment();
+                const groupId = this.currentMap ? this.currentMap.fragmentGroupId : 'group1';
+                const frag = this.skillManager.dropFragment(groupId);
                 const fragNames = frag.effects.map(e => MASTER_DATA.FRAGMENT_EFFECTS[e].name).join(", ");
                 const dropDiv = document.createElement('div');
                 dropDiv.innerText = `★輝きのかけら入手！ [${fragNames}]`;

@@ -32,12 +32,15 @@ const MASTER_DATA = {
     FRAGMENT_EFFECTS: {
         power_up: { name: "強打", desc: "威力+20%", calc: (s) => s.power *= 1.2 },
         ct_down: { name: "神速", desc: "CT-15%", calc: (s) => s.coolTime *= 0.85 },
-        life_steal: { name: "吸血", desc: "与ダメ5%回復", calc: (s) => s.lifeSteal = (s.lifeSteal || 0) + 0.05 },
+        life_steal: { name: "吸血", desc: "与ダメ10%回復", calc: (s) => s.lifeSteal = (s.lifeSteal || 0) + 0.10 },
         double_cast: { name: "追撃", desc: "10%で再発動", calc: (s) => s.doubleChance = (s.doubleChance || 0) + 0.1 },
         berserk: { name: "諸刃", desc: "威力+50%/自傷2%", calc: (s) => { s.power *= 1.5; s.selfDamage = (s.selfDamage || 0) + 0.02 } },
         heavy: { name: "鈍重", desc: "威力+30%/CT+20%", calc: (s) => { s.power *= 1.3; s.coolTime *= 1.2 } },
-        meditation: { name: "瞑想", desc: "威力-20%/自分回復", calc: (s) => { s.power *= 0.8; s.healSelf = true } },
-        quick_step: { name: "軽業", desc: "SPD+5", calc: (s) => s.spdBonus = (s.spdBonus || 0) + 5 }
+        meditation: { name: "瞑想", desc: "威力-20%/自身回復", calc: (s) => { s.power *= 0.8; s.healSelf = true } },
+        quick_step: { name: "軽業", desc: "SPD+5", calc: (s) => s.spdBonus = (s.spdBonus || 0) + 5 },
+        echo: { name: "残像", desc: "20%で再発動/威力-30%", calc: (s) => { s.doubleChance = (s.doubleChance || 0) + 0.2; s.power *= 0.7; } },
+        dexterous: { name: "器用", desc: "威力+10%/CT-5%", calc: (s) => { s.power *= 1.1; s.coolTime *= 0.95 } },
+        madness: { name: "狂気", desc: "威力+80%/自傷7%/CT-20%", calc: (s) => { s.power *= 1.8; s.selfDamage = (s.selfDamage || 0) + 0.07; s.coolTime *= 0.8 } },
     },
     SKILL_CONDITIONS: [
         { id: "always", name: "常に使う" },
@@ -57,6 +60,7 @@ const MASTER_DATA = {
         {
             id: "forest",
             name: "静かな森",
+            fragmentGroupId: "group1",
             encounters: [
                 ["slime"],
                 ["slime", "slime"]
@@ -65,6 +69,7 @@ const MASTER_DATA = {
         {
             id: "cave",
             name: "暗い洞窟",
+            fragmentGroupId: "group1",
             encounters: [
                 ["bat"],
                 ["goblin"],
@@ -74,6 +79,7 @@ const MASTER_DATA = {
         {
             id: "cemetery",
             name: "古い墓地",
+            fragmentGroupId: "group1",
             encounters: [
                 ["skeleton"],
                 ["bat", "bat"],
@@ -83,6 +89,7 @@ const MASTER_DATA = {
         {
             id: "volcano",
             name: "灼熱の火山",
+            fragmentGroupId: "group1",
             encounters: [
                 ["fire_spirit"],
                 ["fire_spirit", "fire_spirit"],
@@ -92,6 +99,7 @@ const MASTER_DATA = {
         {
             id: "castle",
             name: "荒れ果てた王城",
+            fragmentGroupId: "group2",
             encounters: [
                 ["armored_knight"],
                 ["armored_knight", "ghost"],
@@ -115,7 +123,7 @@ const MASTER_DATA = {
                 { id: "heal", level: 1, fragments: [], currentCoolDown: 0, condition: "hp_low" }
             ]
         },
-        metal_slime:{
+        metal_slime: {
             id: "metal_slime", name: "金属スライム", hp: 10, pAtk: 1, pDef: 1000, mAtk: 1, mDef: 1000, spd: 100, exp: 100,
             // 配列に変更
             drops: [
@@ -205,6 +213,7 @@ const MASTER_DATA = {
 MASTER_DATA.FRAGMENT_DROP_CHANCE = 0.1;
 MASTER_DATA.FRAGMENT_GROUPS = {
     group1: ["power_up", "ct_down", "quick_step", "life_steal", "meditation", "heavy", "double_cast", "berserk"],
+    group2: ["power_up", "ct_down", "quick_step", "life_steal", "meditation", "heavy", "double_cast", "berserk", "echo", "dexterous", "madness"],
 };
 
 MASTER_DATA.JOBS = {
