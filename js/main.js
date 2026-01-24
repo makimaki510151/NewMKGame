@@ -69,7 +69,7 @@ class GameController {
             return;
         }
         const data = JSON.parse(json);
-        this.party = data.party.map(p => new Character(p.id, p.name, p.data));
+        this.party = data.party.map(p => new Character(p.id, p.name, p));
 
         // セーブデータから在庫とかけらを復元
         this.skillManager = new SkillManager(data.skillInventory, data.fragmentInventory);
