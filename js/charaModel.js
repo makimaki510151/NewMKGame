@@ -19,6 +19,7 @@ class Character {
             });
         }
 
+        console.log(savedData);
         // 保存データがあれば上書き
         if (savedData) {
             Object.assign(this, savedData);
