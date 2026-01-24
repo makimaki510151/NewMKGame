@@ -12,6 +12,7 @@ class GameController {
         this.skillManager = new SkillManager();
         this.battleSystem = new BattleSystem();
         this.hasJoinedBonusChara = false;
+        this.hasJoinedKnightChara = false;
 
         this.initAuthListener();
 
@@ -74,6 +75,7 @@ class GameController {
         // セーブデータから在庫とかけらを復元
         this.skillManager = new SkillManager(data.inventory, data.fragments);
         this.hasJoinedBonusChara = data.hasJoinedBonusChara || false;
+        this.hasJoinedKnightChara = data.hasJoinedKnightChara || false;
         this.usedCodes = data.usedCodes || [];
     }
 
@@ -85,6 +87,7 @@ class GameController {
             inventory: this.skillManager.inventory,
             fragments: this.skillManager.fragments,
             hasJoinedBonusChara: this.hasJoinedBonusChara,
+            hasJoinedKnightChara: this.hasJoinedKnightChara,
             usedCodes: this.usedCodes
         };
 
@@ -1220,6 +1223,25 @@ class GameController {
                 dropDiv.innerText = `★輝きのかけら入手！ [${fragNames}]`;
                 dropDiv.style.color = "#00ffff";
                 document.getElementById('battle-log').appendChild(dropDiv);
+            }
+
+            const hasDefeatedKnight = this.currentEnemies.some(e => e.id === 'armored_knight');
+
+            if (hasDefeatedKnight && !this.hasJoinedKnightChara) {
+                this.hasJoinedKnightChara = true;
+
+                // 3キャラ目のデータを作成して追加
+                // キャラクターID: 3, 名前: クレア（例）
+                const newChara = new Character(3, "クレア");
+                newChara.job = "warrior"; // 初期職業を戦士などに設定
+
+                this.party.push(newChara);
+
+                const dropDiv = document.createElement('div');
+                dropDiv.innerText = ">> 重装騎士を討伐した証として、新たな仲間が加わった！";
+                dropDiv.style.color = "#ffaa00";
+                document.getElementById('battle-log').appendChild(dropDiv);
+                this.updatePartyUI()
             }
 
             this.checkLevelEvents();
