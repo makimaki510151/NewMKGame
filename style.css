@@ -316,7 +316,7 @@ button:active {
 
 /* かけらリストのスクロールエリア */
 .fragment-scroll-container {
-    max-height: 300px;
+    max-height: 900px;
     /* 必要に応じて調整 */
     overflow-y: auto;
     border: 1px solid #ccc;
