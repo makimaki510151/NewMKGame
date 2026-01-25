@@ -145,10 +145,9 @@ const MASTER_DATA = {
         },
         metal_slime: {
             id: "metal_slime", name: "金属スライム", hp: 10, pAtk: 1, pDef: 1000, mAtk: 1, mDef: 1000, spd: 100, exp: 100,
-            // 配列に変更
             drops: [
-                { id: "slash", rate: 0.1 },
-                { id: "magic_bullet", rate: 0.1 }
+                { id: "slash", rate: 0.25 },
+                { id: "magic_bullet", rate: 0.25 }
             ],
             skills: [{ id: "attack", level: 1, fragments: [], currentCoolDown: 0, condition: "always" }]
         },
@@ -296,6 +295,11 @@ MASTER_DATA.SECRET_CODES = {
         message: "強力なスキル [斬撃 Lv.5] を手に入れた！"
     },
     "きんきんきんぞく": {
+        type: "stage",
+        mapId: "metal_stage",
+        message: "甘美なる金属の世界へ…！"
+    },
+    "きんきらきんぞく": {
         type: "stage",
         mapId: "metal_stage",
         message: "甘美なる金属の世界へ…！"
