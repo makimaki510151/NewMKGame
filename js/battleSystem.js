@@ -177,15 +177,19 @@ class BattleSystem {
         return { log: logs.join(" ") };
     }
 
-    // ヘイトに基づいた重み付け抽選関数（BattleSystemクラス内に追加してください）
-    selectTarget(actor, skill, allUnits) {
-        let targets;
-        if (skill.type === "heal") {
-            // 回復：HP割合が最も低い味方を探す
-            targets = allUnits.filter(u => u.type === actor.type && (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0));
-            if (targets.length === 0) return null;
+    // battleSystem.js 内のメソッドを更新
 
-            return targets.reduce((prev, curr) => {
+    selectTarget(actor, skill, allUnits) {
+        if (skill.type === "heal") {
+            // 【回復】HP割合が「最も低い」生存している味方を確実に選択
+            const allyTargets = allUnits.filter(u =>
+                u.type === actor.type &&
+                (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0)
+            );
+
+            if (allyTargets.length === 0) return null;
+
+            return allyTargets.reduce((prev, curr) => {
                 const getHpRate = (u) => {
                     const s = u.type === 'player' ? u.data.stats : u.data;
                     const m = u.type === 'player' ? u.data.currentMaxHp : (u.data.maxHp || u.data.hp);
@@ -193,16 +197,28 @@ class BattleSystem {
                 };
                 return getHpRate(curr) < getHpRate(prev) ? curr : prev;
             });
-        } else {
-            // 攻撃：敵対勢力を取得
-            targets = allUnits.filter(u => u.type !== actor.type && (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0));
-            if (targets.length === 0) return null;
 
-            // 敵がプレイヤーを狙う場合のみヘイト抽選、それ以外（プレイヤーが敵を狙う等）はランダム
+        } else {
+            // 【攻撃】生存している敵対勢力を取得
+            const enemyTargets = allUnits.filter(u =>
+                u.type !== actor.type &&
+                (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0)
+            );
+
+            if (enemyTargets.length === 0) return null;
+
+            // 敵がプレイヤーを狙う場合、ヘイトが「最も高い」キャラを確実に選択
             if (actor.type === 'enemy') {
-                return this.selectTargetByHate(targets);
+                return enemyTargets.reduce((prev, curr) => {
+                    const hPrev = (prev.data.currentHate || 0);
+                    const hCurr = (curr.data.currentHate || 0);
+                    // ヘイトが同じなら、配列の前方にいるキャラ（またはランダム）を優先
+                    return hCurr > hPrev ? curr : prev;
+                });
             }
-            return targets[Math.floor(Math.random() * targets.length)];
+
+            // プレイヤーが敵を狙う場合は、現状通り先頭またはランダム
+            return enemyTargets[0];
         }
     }
 
@@ -247,7 +263,7 @@ class BattleSystem {
         // ターゲット再選定（前のターゲットが死んでいる可能性があるため）
         const target = this.selectTarget(actor, skill, allUnits);
         if (!target) return { log: "" };
-        
+
         const aStats = isPlayer ? chara.stats : chara;
         const dStats = target.type === 'player' ? target.data.stats : target.data;
 
