@@ -181,7 +181,7 @@ class GameController {
                 this.skillManager.fragments = cloudData.fragments;
             }
             this.hasJoinedBonusChara = cloudData.hasJoinedBonusChara || false;
-
+            this.hasJoinedKnightChara = cloudData.hasJoinedKnightChara || false;
             this.updatePartyUI();
             console.log("クラウドからデータを復元しました");
 
