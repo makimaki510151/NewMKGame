@@ -568,7 +568,7 @@ class GameController {
 
         // フィルタ・ソートUI
         fragSection.innerHTML = `
-    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; border-bottom:2px solid #ccc; padding-bottom:5px; margin-bottom:10px;">
+    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; border-bottom:2px solid #ccc; padding-bottom:5px; margin-bottom:5px;">
         <h4 style="margin:0;">所持中のかけら</h4>
         <div style="display:flex; gap:5px; align-items:center;">
             <label style="font-size:0.7em; color:#fff; cursor:pointer;">
@@ -586,6 +586,11 @@ class GameController {
                 <option value="effect_count_asc" ${this.fragmentSortType === 'effect_count_asc' ? 'selected' : ''}>効果数：少</option>
             </select>
         </div>
+    </div>
+    <div style="display:flex; gap:10px; margin-bottom:10px; padding:5px; background:rgba(255,255,255,0.1); border-radius:4px; align-items:center;">
+        <span style="font-size:0.7em; color:#aaa;">一括処分:</span>
+        <button id="btn-bulk-12" style="font-size:0.7em; background:#442222; color:#ffcccc; border:1px solid #663333; cursor:pointer; padding:2px 5px;">効果1〜2個</button>
+        <button id="btn-bulk-unique3" style="font-size:0.7em; background:#442222; color:#ffcccc; border:1px solid #663333; cursor:pointer; padding:2px 5px;">効果3種バラバラ</button>
     </div>`;
 
         const scrollBox = document.createElement('div');
@@ -648,6 +653,23 @@ class GameController {
         fragSection.querySelector('#frag-filter-locked').onchange = (e) => { this.fragmentFilterLocked = e.target.checked; this.renderEquipScene(); };
         fragSection.querySelector('#frag-filter-select').onchange = (e) => { this.fragmentFilterEffect = e.target.value; this.renderEquipScene(); };
         fragSection.querySelector('#frag-sort-select').onchange = (e) => { this.fragmentSortType = e.target.value; this.renderEquipScene(); };
+
+        fragSection.querySelector('#btn-bulk-12').onclick = () => {
+            if (confirm('ロックされていない「効果数1〜2」のかけらをすべて処分しますか？')) {
+                const count = this.skillManager.bulkDeleteFragments('count12');
+                alert(`${count}個を処分しました。`);
+                this.renderEquipScene();
+                this.saveGame();
+            }
+        };
+        fragSection.querySelector('#btn-bulk-unique3').onclick = () => {
+            if (confirm('ロックされていない「効果3つがすべて異なる」かけらをすべて処分しますか？')) {
+                const count = this.skillManager.bulkDeleteFragments('unique3');
+                alert(`${count}個を処分しました。`);
+                this.renderEquipScene();
+                this.saveGame();
+            }
+        };
 
         requestAnimationFrame(() => {
             scrollBox.scrollTop = savedScrollTop;

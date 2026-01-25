@@ -40,6 +40,39 @@ class SkillManager {
         return { success: false };
     }
 
+    bulkDeleteFragments(type) {
+        let count = 0;
+        // 削除によるインデックスのズレを防ぐため逆順ループ
+        for (let i = this.fragments.length - 1; i >= 0; i--) {
+            const frag = this.fragments[i];
+
+            // ロックされているものは絶対に削除しない
+            if (frag.isLocked) continue;
+
+            let shouldDelete = false;
+            if (type === 'count12') {
+                // 条件：効果数が1または2
+                if (frag.effects.length === 1 || frag.effects.length === 2) {
+                    shouldDelete = true;
+                }
+            } else if (type === 'unique3') {
+                // 条件：効果が3つあり、かつ全てが別々のIDである
+                if (frag.effects.length === 3) {
+                    const uniqueEffects = new Set(frag.effects); // 効果IDの重複を除去
+                    if (uniqueEffects.size === 3) {
+                        shouldDelete = true;
+                    }
+                }
+            }
+
+            if (shouldDelete) {
+                this.deleteFragment(frag.uniqueId);
+                count++;
+            }
+        }
+        return count;
+    }
+
     // 必要コストの計算（同類0:100, 1:300, 2:500）
     calculateScrapCost(fragment, effectId) {
         const sameEffectCount = fragment.effects.filter(e => e === effectId).length;
