@@ -2,31 +2,38 @@ const MASTER_DATA = {
     SKILLS: {
         attack: {
             id: "attack", name: "通常攻撃", type: "physical", power: 1.0, coolTime: 0,
-            growth: { power: 0.1 }
+            growth: { power: 0.1 },
+            hate: 10
         },
         slash: {
             id: "slash", name: "斬撃", type: "physical", power: 1.5, coolTime: 3,
-            growth: { power: 0.2 }
+            growth: { power: 0.2 },
+            hate: 20
         },
         magic_bullet: {
             id: "magic_bullet", name: "魔力弾", type: "magical", power: 1.2, coolTime: 4,
-            growth: { power: 0.15 }
+            growth: { power: 0.15 },
+            hate: 20
         },
         heal: {
             id: "heal", name: "回復", type: "heal", power: 1.0, coolTime: 7,
-            growth: { power: 0.2, coolTime: -0.1 }
+            growth: { power: 0.2, coolTime: -0.1 },
+            hate: 50
         },
         fire_ball: {
             id: "fire_ball", name: "火球", type: "magical", power: 1.8, coolTime: 6,
-            growth: { power: 0.25 }
+            growth: { power: 0.25 },
+            hate: 20
         },
         shield_bash: {
             id: "shield_bash", name: "重撃", type: "physical", power: 2.5, coolTime: 7,
-            growth: { power: 0.5 }
+            growth: { power: 0.5 },
+            hate: 100
         },
         prayer: {
             id: "prayer", name: "祈り", type: "heal", power: 2.0, coolTime: 8,
-            growth: { power: 0.3, coolTime: -0.2 }
+            growth: { power: 0.3, coolTime: -0.2 },
+            hate: 50
         }
     },
     FRAGMENT_EFFECTS: {
@@ -41,6 +48,9 @@ const MASTER_DATA = {
         echo: { name: "残像", desc: "20%で再発動/威力-30%", calc: (s) => { s.doubleChance = (s.doubleChance || 0) + 0.2; s.power *= 0.7; } },
         dexterous: { name: "器用", desc: "威力+10%/CT-5%", calc: (s) => { s.power *= 1.1; s.coolTime *= 0.95 } },
         madness: { name: "狂気", desc: "威力+80%/自傷7%/CT-20%", calc: (s) => { s.power *= 1.8; s.selfDamage = (s.selfDamage || 0) + 0.07; s.coolTime *= 0.8 } },
+        provoke: { name: "挑発", desc: "ヘイト上昇量+100%", calc: (s) => { s.hateMod *= 2.0; } },
+        stealth: { name: "隠密", desc: "ヘイト上昇量-50%", calc: (s) => { s.hateMod *= 0.5; } },
+        calm: { name: "鎮静", desc: "ターゲットヘイト-20", calc: (s) => { s.hateReduce += 20; } }
     },
     SKILL_CONDITIONS: [
         { id: "always", name: "常に使う" },
@@ -247,7 +257,7 @@ const MASTER_DATA = {
 MASTER_DATA.FRAGMENT_DROP_CHANCE = 0.1;
 MASTER_DATA.FRAGMENT_GROUPS = {
     group1: ["power_up", "ct_down", "quick_step", "life_steal", "meditation", "heavy", "double_cast", "berserk"],
-    group2: ["power_up", "ct_down", "quick_step", "life_steal", "meditation", "heavy", "double_cast", "berserk", "echo", "dexterous", "madness"],
+    group2: ["power_up", "ct_down", "quick_step", "life_steal", "meditation", "heavy", "double_cast", "berserk", "echo", "dexterous", "madness", "provoke", "stealth", "calm"],
 };
 
 MASTER_DATA.JOBS = {

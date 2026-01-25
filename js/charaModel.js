@@ -9,6 +9,7 @@ class Character {
         this.maxExp = 100;
         this.currentMaxHp = 100;
         this.stats = { hp: 100, pAtk: 10, pDef: 10, mAtk: 10, mDef: 10, spd: 10 };
+        this.currentHate = 0;
         this.skills = [
             { id: "attack", currentCoolDown: 0, condition: "always", slots: [null, null, null] }
         ];
@@ -66,27 +67,30 @@ class Character {
         const level = sInfo.level || 0;
         const growth = base.growth || {};
 
-        // 1. スキルレベルによる基礎値計算
         let effective = {
             ...base,
             name: level > 0 ? `${base.name}+${level}` : base.name,
             power: base.power + (growth.power || 0) * level,
             coolTime: Math.max(0, base.coolTime + (growth.coolTime || 0) * level),
-            // 追加の隠しパラメータ初期化
+
             lifeSteal: 0,
             selfDamage: 0,
             doubleChance: 0,
-            healSelf: false
+            healSelf: false,
+
+            // ヘイト関連の初期値
+            hate: base.hate || 10,
+            hateMod: 1.0,
+            hateReduce: 0
         };
 
-        // 2. 「輝きのかけら」の効果を順番に適用
         if (sInfo.slots && Array.isArray(sInfo.slots)) {
             sInfo.slots.forEach(fragment => {
                 if (fragment && fragment.effects) {
                     fragment.effects.forEach(effectKey => {
                         const effectConfig = MASTER_DATA.FRAGMENT_EFFECTS[effectKey];
                         if (effectConfig && effectConfig.calc) {
-                            effectConfig.calc(effective); // 効果を適用
+                            effectConfig.calc(effective);
                         }
                     });
                 }

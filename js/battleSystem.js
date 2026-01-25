@@ -1,12 +1,16 @@
 class BattleSystem {
     constructor() {
         this.maxCt = 100;
+        this.baseHate = 10;
     }
 
     simulate(party, enemies) {
         let logs = [];
         let isBattleEnd = false;
         let winner = null;
+
+        party.forEach(p => p.currentHate = 0);
+        enemies.forEach(e => e.currentHate = 0);
 
         const units = [
             ...party.map(u => ({ type: 'player', data: u, ct: 0 })),
@@ -73,7 +77,7 @@ class BattleSystem {
         // 共通のスキルリスト取得
         const skillList = isPlayer ? chara.skills : (chara.skills || []);
 
-        // 使用可能なスキルの選定（後ろからループして優先度の高いものをチェック）
+        // 使用可能なスキルの選定
         for (let i = skillList.length - 1; i >= 0; i--) {
             const sInfo = skillList[i];
             const sData = isPlayer ? chara.getSkillEffectiveData(sInfo) : this.getEnemySkillData(sInfo);
@@ -84,7 +88,6 @@ class BattleSystem {
             if (isAvailable && isConditionMet) {
                 selectedSkillId = sInfo.id;
                 sInfoRef = sInfo;
-                // 使用したスキルのCTを設定
                 sInfo.currentCoolDown = sData.coolTime || 0;
                 break;
             }
@@ -100,16 +103,9 @@ class BattleSystem {
             ? chara.getSkillEffectiveData(sInfoRef || { id: selectedSkillId })
             : this.getEnemySkillData(sInfoRef || { id: selectedSkillId });
 
-        // --- 2. ターゲットの選定 ---
-        let targets;
-        if (skill.type === "heal") {
-            targets = allUnits.filter(u => u.type === actor.type && (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0));
-        } else {
-            targets = allUnits.filter(u => u.type !== actor.type && (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0));
-        }
-
-        if (targets.length === 0) return { log: "" };
-        const target = targets[Math.floor(Math.random() * targets.length)];
+        // ターゲット選定
+        const target = this.selectTarget(actor, skill, allUnits);
+        if (!target) return { log: "" };
 
         // --- 3. 実行（計算と適用） ---
         const aStats = isPlayer ? chara.stats : chara;
@@ -129,11 +125,9 @@ class BattleSystem {
         } else {
             let dmg = 0;
             if (skill.type === "physical") {
-                // ダメージ / 防御力 の形式に変更
                 const rawDmg = aStats.pAtk * skill.power;
                 dmg = rawDmg / Math.max(1, dStats.pDef);
             } else if (skill.type === "magical") {
-                // ダメージ / 防御力 の形式に変更
                 const rawDmg = aStats.mAtk * skill.power;
                 dmg = rawDmg / Math.max(1, dStats.mDef);
             }
@@ -146,6 +140,17 @@ class BattleSystem {
                 aStats.hp = Math.min(currentMaxHp, aStats.hp + stealAmt);
                 logs.push(`${attackerName}は生命力を吸収し ${stealAmt} 回復。`);
             }
+        }
+
+        if (isPlayer) {
+            const finalHateGain = Math.floor((skill.hate || 10) * (skill.hateMod || 1.0));
+            chara.currentHate = (chara.currentHate || 0) + finalHateGain;
+        }
+
+        // 相手のヘイトを減少させる効果（挑発解除スキルなど）
+        if (skill.hateReduce > 0 && target.type === 'player') {
+            target.data.currentHate = Math.max(0, (target.data.currentHate || 0) - skill.hateReduce);
+            logs.push(`${targetName}のヘイトが減少した。`);
         }
 
         // かけらの追加効果（自傷・瞑想）
@@ -162,16 +167,43 @@ class BattleSystem {
         }
 
         // --- 4. 追撃（再発動）の処理 ---
-        // 無限ループを防ぐため、再発動時は確率判定を行わないように一時的にスキルデータを書き換えるか、
-        // ここで直接もう一度ダメージ処理を行います。
         if (skill.doubleChance > 0 && Math.random() < skill.doubleChance) {
             logs.push(`>> 追撃発動！`);
-            // 追撃分はCT消費や条件判定を飛ばして、この場でダメージ/回復を再計算
+            // 追撃時もターゲットを再選定（ヘイト基準）
             const followUpResult = this.executeFollowUp(actor, skill, allUnits);
             if (followUpResult.log) logs.push(followUpResult.log);
         }
 
         return { log: logs.join(" ") };
+    }
+
+    // ヘイトに基づいた重み付け抽選関数（BattleSystemクラス内に追加してください）
+    selectTarget(actor, skill, allUnits) {
+        let targets;
+        if (skill.type === "heal") {
+            // 回復：HP割合が最も低い味方を探す
+            targets = allUnits.filter(u => u.type === actor.type && (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0));
+            if (targets.length === 0) return null;
+
+            return targets.reduce((prev, curr) => {
+                const getHpRate = (u) => {
+                    const s = u.type === 'player' ? u.data.stats : u.data;
+                    const m = u.type === 'player' ? u.data.currentMaxHp : (u.data.maxHp || u.data.hp);
+                    return s.hp / m;
+                };
+                return getHpRate(curr) < getHpRate(prev) ? curr : prev;
+            });
+        } else {
+            // 攻撃：敵対勢力を取得
+            targets = allUnits.filter(u => u.type !== actor.type && (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0));
+            if (targets.length === 0) return null;
+
+            // 敵がプレイヤーを狙う場合のみヘイト抽選、それ以外（プレイヤーが敵を狙う等）はランダム
+            if (actor.type === 'enemy') {
+                return this.selectTargetByHate(targets);
+            }
+            return targets[Math.floor(Math.random() * targets.length)];
+        }
     }
 
     // 敵のスキル情報をレベル・かけら込みの実行データに変換
@@ -213,15 +245,9 @@ class BattleSystem {
         const chara = actor.data;
 
         // ターゲット再選定（前のターゲットが死んでいる可能性があるため）
-        let targets;
-        if (skill.type === "heal") {
-            targets = allUnits.filter(u => u.type === actor.type && (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0));
-        } else {
-            targets = allUnits.filter(u => u.type !== actor.type && (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0));
-        }
-        if (targets.length === 0) return { log: "" };
-        const target = targets[Math.floor(Math.random() * targets.length)];
-
+        const target = this.selectTarget(actor, skill, allUnits);
+        if (!target) return { log: "" };
+        
         const aStats = isPlayer ? chara.stats : chara;
         const dStats = target.type === 'player' ? target.data.stats : target.data;
 

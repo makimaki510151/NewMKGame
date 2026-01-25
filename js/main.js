@@ -434,11 +434,13 @@ class GameController {
                     const displayPower = (Math.floor(sData.power * 10) / 10).toFixed(1);
                     const displayCT = (Math.floor(sData.coolTime * 10) / 10).toFixed(1);
 
+                    // ヘイト値の計算（かけら効果反映。プロパティ名はhateまたはbaseHateを想定）
+                    const displayHate = sData.hate || MASTER_DATA.SKILLS[sInfo.id]?.hate || 10;
+
                     let options = MASTER_DATA.SKILL_CONDITIONS.map(cond =>
                         `<option value="${cond.id}" ${currentCond === cond.id ? 'selected' : ''}>${cond.name}</option>`
                     ).join('');
 
-                    // かけらスロットの生成
                     let fragmentSlotsHtml = '<div class="skill-slot-container" style="display:flex; gap:5px; margin-top:5px;">';
                     if (!sInfo.slots) sInfo.slots = [null, null, null];
 
@@ -461,26 +463,25 @@ class GameController {
                             ? `gameApp.detachFragment('${chara.id}', ${sIndex}, ${slotIdx})`
                             : `gameApp.showFragmentPicker('${chara.id}', ${sIndex}, ${slotIdx})`;
 
-                        // ドラッグ＆ドロップ対応のスロット
                         fragmentSlotsHtml += `
-                        <div class="fragment-slot ${filledClass} tooltip" 
-                             style="width:24px; height:24px; border:1px dashed #666; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; background:${slotBg}; color:#000;"
-                             onclick="event.stopPropagation(); ${clickAction}"
-                             ondragover="event.preventDefault();"
-                             ondrop="gameApp.handleDropFragment(event, '${chara.id}', ${sIndex}, ${slotIdx})">
-                            ${label}
-                            <span class="tooltip-text">${detailText}${fragment ? '<br><br>(クリックで外す)' : ''}</span>
-                        </div>`;
+                    <div class="fragment-slot ${filledClass} tooltip" 
+                         style="width:24px; height:24px; border:1px dashed #666; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; background:${slotBg}; color:#000;"
+                         onclick="event.stopPropagation(); ${clickAction}"
+                         ondragover="event.preventDefault();"
+                         ondrop="gameApp.handleDropFragment(event, '${chara.id}', ${sIndex}, ${slotIdx})">
+                        ${label}
+                        <span class="tooltip-text">${detailText}${fragment ? '<br><br>(クリックで外す)' : ''}</span>
+                    </div>`;
                     });
                     fragmentSlotsHtml += '</div>';
 
                     skillSlotsHtml += `
-                    <div class="skill-slot-item" style="border-bottom:1px solid #444; margin-bottom:5px; padding:5px; font-size:0.85em;">
-                        <strong>${sData.name}</strong> (威力:${displayPower} / CT:${displayCT})<br>
-                        <select onchange="gameApp.changeSkillCondition('${chara.id}', ${sIndex}, this.value)">${options}</select>
-                        ${!isAttack ? `<button onclick="gameApp.unequipSkill('${chara.id}', ${sIndex})">外す</button>` : '<small> (固定)</small>'}
-                        ${fragmentSlotsHtml}
-                    </div>`;
+                <div class="skill-slot-item" style="border-bottom:1px solid #444; margin-bottom:5px; padding:5px; font-size:0.85em;">
+                    <strong>${sData.name}</strong> (威力:${displayPower} / CT:${displayCT} / <span style="color:#ffcc00;">ヘイト:${displayHate}</span>)<br>
+                    <select onchange="gameApp.changeSkillCondition('${chara.id}', ${sIndex}, this.value)">${options}</select>
+                    ${!isAttack ? `<button onclick="gameApp.unequipSkill('${chara.id}', ${sIndex})">外す</button>` : '<small> (固定)</small>'}
+                    ${fragmentSlotsHtml}
+                </div>`;
                 });
             }
 
@@ -513,36 +514,36 @@ class GameController {
         allCombineBtn.onclick = () => this.combineAllSkills();
         container.appendChild(allCombineBtn);
 
-        // スクロールエリアの作成（かけらリストと同じスタイル）
         const scrollBox = document.createElement('div');
         scrollBox.className = "fragment-scroll-container";
         scrollBox.style = "height:400px; overflow-y:auto; border:1px solid #eee; background:#fff; border-radius:4px;";
 
         let hasSkill = false;
-        // スキル在庫の表示
         for (const [sId, levels] of Object.entries(this.skillManager.inventory)) {
             if (sId === 'attack' || sId === 'scrap' || sId === 'count') continue;
             for (const [level, count] of Object.entries(levels)) {
                 if (count <= 0) continue;
                 hasSkill = true;
                 const lvlInt = parseInt(level);
-                // データの取得（party[0]を基準にする）
+                // データの取得
                 const sData = this.party[0].getSkillEffectiveData({ id: sId, level: lvlInt });
 
+                // ヘイト値の取得（MASTER_DATAから参照）
+                const hateVal = MASTER_DATA.SKILLS[sId]?.hate || 10;
+
                 const itemDiv = document.createElement('div');
-                // かけらリスト(fDiv)と同じスタイル
                 itemDiv.style = "border-bottom:1px solid #eee; padding:8px; font-size:0.8em; background:#f9f9f9; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; color:#000;";
 
                 itemDiv.innerHTML = `
-                <div>
-                    <strong>${sData.name}</strong> (Lv.${lvlInt})<br>
-                    <small>威力:${(Math.floor(sData.power * 10) / 10).toFixed(1)} / CT:${(Math.floor(sData.coolTime * 10) / 10).toFixed(1)}</small><br>
-                    <small style="color:#666;">所持数: ${count}</small>
-                </div>
-                <div style="display:flex; flex-direction:column; gap:4px; min-width:60px;">
-                    <button onclick="gameApp.equipSkill('${sId}', ${lvlInt})" style="font-size:0.8em; padding:4px;">装備</button>
-                    ${count >= 2 ? `<button onclick="gameApp.combineSkill('${sId}', ${lvlInt})" style="font-size:0.8em; padding:4px; background:#eef;">合成</button>` : ''}
-                </div>`;
+            <div>
+                <strong>${sData.name}</strong> (Lv.${lvlInt})<br>
+                <small>威力:${(Math.floor(sData.power * 10) / 10).toFixed(1)} / CT:${(Math.floor(sData.coolTime * 10) / 10).toFixed(1)} / <span style="color:#d32f2f;">ヘイト:${hateVal}</span></small><br>
+                <small style="color:#666;">所持数: ${count}</small>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px; min-width:60px;">
+                <button onclick="gameApp.equipSkill('${sId}', ${lvlInt})" style="font-size:0.8em; padding:4px;">装備</button>
+                ${count >= 2 ? `<button onclick="gameApp.combineSkill('${sId}', ${lvlInt})" style="font-size:0.8em; padding:4px; background:#eef;">合成</button>` : ''}
+            </div>`;
                 scrollBox.appendChild(itemDiv);
             }
         }
@@ -552,7 +553,6 @@ class GameController {
         }
 
         container.appendChild(scrollBox);
-
         requestAnimationFrame(() => {
             scrollBox.scrollTop = savedScrollTop;
         });
