@@ -227,7 +227,7 @@ const MASTER_DATA = {
             ]
         },
         holy_sentinel: {
-            id: "holy_sentinel", name: "聖域の番人", hp: 12000, pAtk: 2500, pDef: 3000, mAtk: 500, mDef: 3500, spd: 400, exp: 50,
+            id: "holy_sentinel", name: "聖域の番人", hp: 12000, pAtk: 2500, pDef: 3000, mAtk: 500, mDef: 3500, spd: 400, exp: 5,
             drops: [
                 { id: "shield_bash", rate: 0.1 },
                 { id: "prayer", rate: 0.02 }
@@ -239,7 +239,7 @@ const MASTER_DATA = {
             ]
         },
         seraph_arc: {
-            id: "seraph_arc", name: "セラフ・アーク", hp: 8000, pAtk: 200, pDef: 1500, mAtk: 4000, mDef: 4000, spd: 1200, exp: 60,
+            id: "seraph_arc", name: "セラフ・アーク", hp: 8000, pAtk: 200, pDef: 1500, mAtk: 4000, mDef: 4000, spd: 1200, exp: 5,
             drops: [
                 { id: "magic_bullet", rate: 0.15 },
                 { id: "prayer", rate: 0.05 }
