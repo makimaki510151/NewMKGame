@@ -16,8 +16,8 @@ const MASTER_DATA = {
             hate: 20
         },
         heal: {
-            id: "heal", name: "回復", type: "heal", power: 1.0, coolTime: 7,
-            growth: { power: 0.2, coolTime: -0.1 },
+            id: "heal", name: "回復", type: "heal", power: 0.3, coolTime: 7,
+            growth: { power: 0.1, coolTime: -0.1 },
             hate: 50
         },
         fire_ball: {
@@ -31,8 +31,8 @@ const MASTER_DATA = {
             hate: 100
         },
         prayer: {
-            id: "prayer", name: "祈り", type: "heal", power: 2.0, coolTime: 8,
-            growth: { power: 0.3, coolTime: -0.2 },
+            id: "prayer", name: "祈り", type: "heal", power: 0.75, coolTime: 8,
+            growth: { power: 0.15, coolTime: -0.2 },
             hate: 50
         }
     },
