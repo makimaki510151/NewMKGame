@@ -31,7 +31,7 @@ const MASTER_DATA = {
             hate: 100
         },
         prayer: {
-            id: "prayer", name: "祈り", type: "heal", power: 0.75, coolTime: 8,
+            id: "prayer", name: "祈り", type: "heal", power: 0.75, coolTime: 20,
             growth: { power: 0.15, coolTime: -0.2 },
             hate: 50
         }
