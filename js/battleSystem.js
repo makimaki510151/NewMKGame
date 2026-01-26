@@ -123,23 +123,6 @@ class BattleSystem {
 
         let result = this.performMove(actor, skill, allUnits);
 
-        if (skill.selfDamage && skill.selfDamage > 0) {
-            const stats = isPlayer ? chara.stats : chara;
-            const maxHp = isPlayer ? chara.currentMaxHp : (chara.maxHp || chara.hp);
-
-            const selfDmg = Math.floor(maxHp * skill.selfDamage);
-            stats.hp = Math.max(1, stats.hp - selfDmg);
-
-            if (result.log) {
-                result.log += ` (反動で ${selfDmg} ダメージ！)`;
-            }
-
-            if (skill.berserkImmune && maxHp * skill.berserkImmune <= selfDmg) {
-                chara.nextDamageBonus = (chara.nextDamageBonus || 0) + selfDmg * 0.01;
-                result.log += ` (【真・諸刃】条件通過)`;
-            }
-        }
-
         if (skill.doubleRepeat) {
             let secondResult = this.performMove(actor, skill, allUnits);
             result.log += " [連続発動] " + secondResult.log;
@@ -226,6 +209,23 @@ class BattleSystem {
             }
         }
 
+        if (skill.selfDamage && skill.selfDamage > 0) {
+            const stats = isPlayer ? chara.stats : chara;
+            const maxHp = isPlayer ? chara.currentMaxHp : (chara.maxHp || chara.hp);
+
+            const selfDmg = Math.floor(maxHp * skill.selfDamage);
+            stats.hp = Math.max(1, stats.hp - selfDmg);
+
+            if (result.log) {
+                result.log += ` (反動で ${selfDmg} ダメージ！)`;
+            }
+
+            if (skill.berserkImmune && maxHp * skill.berserkImmune <= selfDmg) {
+                chara.nextDamageBonus = (chara.nextDamageBonus || 0) + selfDmg * 0.01;
+                result.log += ` (【真・諸刃】条件通過)`;
+            }
+        }
+
         if (skill.permanentGrowth) {
             ["pAtk", "pDef", "mAtk", "mDef", "spd"].forEach(k => {
                 chara.battleBuffs[k] = (chara.battleBuffs[k] || 1) * (1 + skill.permanentGrowth);
@@ -271,8 +271,15 @@ class BattleSystem {
         }
     }
 
-    executeFollowUp(actor, skill, allUnits, chainCount = 0) {
-        let chance = (chainCount === 0) ? (skill.doubleChance || 0) : (skill.chainDouble || 0);
+    executeFollowUp(actor, skill, allUnits, currentChance = null) {
+        // 確率の計算: 初回は doubleChance * chainDouble、以降は前回の確率 * chainDouble
+        let chance;
+        if (currentChance === null) {
+            chance = (skill.doubleChance || 0)
+        } else {
+            chance = currentChance * (skill.chainDouble || 0);
+        }
+
         if (Math.random() >= chance) return { log: "" };
 
         const chara = actor.data;
@@ -280,20 +287,43 @@ class BattleSystem {
         if (!target) return { log: "" };
 
         const baseStats = actor.type === 'player' ? chara.stats : chara;
-        const buffs = chara.battleBuffs || { pAtk: 1, mAtk: 1 };
+        const buffs = chara.battleBuffs || { pAtk: 1, pDef: 1, mAtk: 1, mDef: 1, spd: 1 };
         const dBase = target.type === 'player' ? target.data.stats : target.data;
-        const dBuffs = target.data.battleBuffs || { pDef: 1, mDef: 1 };
+        const targetMaxHp = target.type === 'player' ? target.data.currentMaxHp : (target.data.maxHp || target.data.hp);
 
-        let dmg = (skill.type === "physical")
-            ? (baseStats.pAtk * (buffs.pAtk || 1) * (skill.power || 1) / Math.max(1, dBase.pDef * (dBuffs.pDef || 1)))
-            : (baseStats.mAtk * (buffs.mAtk || 1) * (skill.power || 1) / Math.max(1, dBase.mDef * (dBuffs.mDef || 1)));
+        const aStats = {
+            pAtk: baseStats.pAtk * (buffs.pAtk || 1),
+            mAtk: baseStats.mAtk * (buffs.mAtk || 1)
+        };
 
-        dmg = Math.max(1, Math.floor(dmg));
-        dBase.hp -= dmg;
-        let currentLog = `[追撃] ${target.data.name}に ${dmg} ダメージ！`;
+        let currentLog = "";
+        let powerMult = skill.power || 1.0;
 
+        if (skill.type === "heal") {
+            // 回復スキルの追撃処理
+            let healAmt = Math.floor(aStats.mAtk * powerMult);
+            dBase.hp = Math.min(targetMaxHp, dBase.hp + healAmt);
+            currentLog = `[追撃] ${target.data.name}のHPが ${healAmt} 回復！`;
+        } else {
+            // 攻撃スキルの追撃処理
+            const dBuffs = target.data.battleBuffs || { pDef: 1, mDef: 1 };
+            const dStats = {
+                pDef: dBase.pDef * (dBuffs.pDef || 1),
+                mDef: dBase.mDef * (dBuffs.mDef || 1)
+            };
+
+            let dmg = (skill.type === "physical")
+                ? (aStats.pAtk * powerMult / Math.max(1, dStats.pDef))
+                : (aStats.mAtk * powerMult / Math.max(1, dStats.mDef));
+
+            dmg = Math.max(1, Math.floor(dmg));
+            dBase.hp -= dmg;
+            currentLog = `[追撃] ${target.data.name}に ${dmg} ダメージ！`;
+        }
+
+        // chainDoubleが存在する場合、次回の判定へ
         if (skill.chainDouble) {
-            const next = this.executeFollowUp(actor, skill, allUnits, chainCount + 1);
+            const next = this.executeFollowUp(actor, skill, allUnits, chance);
             if (next.log) currentLog += " " + next.log;
         }
         return { log: currentLog };
