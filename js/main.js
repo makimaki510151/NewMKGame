@@ -1183,13 +1183,14 @@ class GameController {
         }
     }
 
-    // スキル自体を外す処理（既存の関数を修正）
+    // スキル自体を外す処理
     unequipSkill(charaId, skillIndex) {
-        // String() で囲むことで数値IDと文字列IDの不一致を防ぐ
         const chara = this.party.find(c => String(c.id) === String(charaId));
         if (!chara) return;
 
         const skill = chara.skills[skillIndex];
+
+        // 1. かけらをインベントリに戻す
         if (skill.slots) {
             skill.slots.forEach((fragment, idx) => {
                 if (fragment) {
@@ -1199,6 +1200,13 @@ class GameController {
             });
         }
 
+        // 2. 結晶（crystalSlot）をインベントリに戻す (追加箇所)
+        if (skill.crystalSlot) {
+            this.skillManager.crystals.push(skill.crystalSlot);
+            skill.crystalSlot = null;
+        }
+
+        // 3. スキル在庫を戻して装備解除
         this.skillManager.addSkill(skill.id, skill.level || 0);
         chara.skills.splice(skillIndex, 1);
 
