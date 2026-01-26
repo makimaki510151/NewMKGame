@@ -485,7 +485,7 @@ class GameController {
                     // --- 結晶スロットの生成 (ここを追加) ---
                     const crystal = sInfo.crystalSlot; // スキルに紐付いた結晶データ
                     const isCrystalSelected = this.selectedCrystalSlot &&
-                        this.selectedCrystalSlot.charaId === chara.id &&
+                        String(this.selectedCrystalSlot.charaId) === String(chara.id) &&
                         this.selectedCrystalSlot.skillIndex === sIndex;
 
                     const crystalLabel = crystal ? '◆' : '◇';

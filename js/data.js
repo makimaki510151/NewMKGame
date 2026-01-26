@@ -59,7 +59,7 @@ const MASTER_DATA = {
         double_cast: { name: "真・追撃", desc: "追撃が連鎖する(減衰90%)", crystalCalc: (s) => { s.chainDouble = 0.9; } },
         berserk: { name: "真・諸刃", desc: "自傷ダメージを1度に最大体力の30%受けると自傷の1%分威力に加算する", crystalCalc: (s) => { s.berserkImmune = 0.3; } },
         heavy: { name: "真・鈍重", desc: "威力+30%/CT+50%/敵をスタン", crystalCalc: (s) => { s.power *= 1.3; s.coolTime *= 1.5; s.stunEnemy = true; } },
-        meditation: { name: "真・瞑想", desc: "威力-20%/全ステ永続3%UP", crystalCalc: (s) => { s.power *= 0.8; s.permanentGrowth = 0.03; } },
+        meditation: { name: "真・瞑想", desc: "威力-20%/全ステ永続1%UP", crystalCalc: (s) => { s.power *= 0.8; s.permanentGrowth = 0.01; } },
         quick_step: { name: "真・軽業", desc: "2回連続発動/CT通常", crystalCalc: (s) => { s.doubleRepeat = true; } },
         echo: { name: "真・残像", desc: "味方の攻撃に100%追撃", crystalCalc: (s) => { s.markEcho = true; } },
         dexterous: { name: "真・器用", desc: "有利な属性でダメージ計算", crystalCalc: (s) => { s.autoAttribute = true; } },
@@ -284,18 +284,23 @@ MASTER_DATA.JOBS = {
     warrior: {
         name: "戦士",
         description: "物理攻撃と耐久力に優れた職業。HPと物理攻撃が伸びやすい。",
-        weights: { hp: 30, pAtk: 30, pDef: 20, mAtk: 5, mDef: 5, spd: 10 } // 合計100
+        weights: { hp: 30, pAtk: 25, pDef: 20, mAtk: 5, mDef: 5, spd: 15 } // 合計100
     },
     mage: {
         name: "魔導士",
         description: "魔法の扱いに長けた職業。魔法攻撃と魔法防御が伸びやすい。",
-        weights: { hp: 15, pAtk: 5, pDef: 10, mAtk: 35, mDef: 25, spd: 10 } // 合計100
+        weights: { hp: 12, pAtk: 5, pDef: 10, mAtk: 35, mDef: 22, spd: 16 } // 合計100
     },
     scout: {
         name: "スカウト",
         description: "素早い動きで敵を翻弄する。速度が非常に伸びやすい。",
         weights: { hp: 20, pAtk: 15, pDef: 10, mAtk: 10, mDef: 10, spd: 35 } // 合計100
-    }
+    },
+    archer: {
+        name: "弓使い",
+        description: "攻撃に特化した職業。物理攻撃と魔法攻撃が伸びやすい。",
+        weights: { hp: 10, pAtk: 30, pDef: 5, mAtk: 30, mDef: 5, spd: 20 } // 合計100
+    },
 };
 
 MASTER_DATA.SECRET_CODES = {

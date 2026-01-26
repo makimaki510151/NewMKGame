@@ -84,6 +84,7 @@ class Character {
             hateReduce: 0
         };
 
+        // かけら（スロット）の効果適用
         if (sInfo.slots && Array.isArray(sInfo.slots)) {
             sInfo.slots.forEach(fragment => {
                 if (fragment && fragment.effects) {
@@ -93,6 +94,20 @@ class Character {
                             effectConfig.calc(effective);
                         }
                     });
+                }
+            });
+        }
+
+        // クリスタルの効果適用
+        if (sInfo.crystals && Array.isArray(sInfo.crystals)) {
+            sInfo.crystals.forEach(crysId => {
+                // MASTER_DATA.CRYSTALS から定義を取得
+                const cData = MASTER_DATA.CRYSTALS[crysId];
+                if (cData) {
+                    // クリスタル用の計算関数を実行（プロパティ名は定義に合わせて調整してください）
+                    if (typeof cData.crystalCalc === 'function') {
+                        cData.crystalCalc(effective);
+                    }
                 }
             });
         }
