@@ -60,7 +60,7 @@ const MASTER_DATA = {
         berserk: { name: "真・諸刃", desc: "自傷ダメージを1度に最大体力の30%受けると自傷の1%分威力に加算する", crystalCalc: (s) => { s.berserkImmune = 0.3; } },
         heavy: { name: "真・鈍重", desc: "威力+30%/CT+50%/敵をスタン", crystalCalc: (s) => { s.power *= 1.3; s.coolTime *= 1.5; s.stunEnemy = true; } },
         meditation: { name: "真・瞑想", desc: "威力-20%/全ステ永続1%UP", crystalCalc: (s) => { s.power *= 0.8; s.permanentGrowth = 0.01; } },
-        quick_step: { name: "真・軽業", desc: "2回連続発動/CT通常", crystalCalc: (s) => { s.doubleRepeat = true; } },
+        quick_step: { name: "真・軽業", desc: "該当スキルを2回連続発動", crystalCalc: (s) => { s.doubleRepeat = true; } },
         echo: { name: "真・残像", desc: "味方の攻撃に100%追撃", crystalCalc: (s) => { s.markEcho = true; } },
         dexterous: { name: "真・器用", desc: "有利な属性でダメージ計算", crystalCalc: (s) => { s.autoAttribute = true; } },
         madness: { name: "真・狂気", desc: "低HPほど威力指数UP", crystalCalc: (s) => { s.desperatePower = true; } },
