@@ -1084,7 +1084,7 @@ class GameController {
         const fragment = this.skillManager.popFragment(fragmentUniqueId);
         if (fragment) {
             chara.skills[skillIndex].slots[slotIndex] = fragment;
-            if(this.selectedFragmentIds.includes(String(fragmentUniqueId)))this.toggleFragmentSelection(fragmentUniqueId);
+            if (this.selectedFragmentIds.includes(String(fragmentUniqueId))) this.toggleFragmentSelection(fragmentUniqueId);
             this.saveGame();
             this.renderEquipScene();
         }
@@ -1207,8 +1207,10 @@ class GameController {
     }
 
     changeSkillCondition(charaId, skillIndex, newCondition) {
-        const chara = this.party.find(c => charaId === c.id);
-        if (chara) {
+        // String() で囲むことで、数値と文字列のどちらが来ても正しく比較できるようにします
+        const chara = this.party.find(c => String(charaId) === String(c.id));
+
+        if (chara && chara.skills[skillIndex]) {
             chara.skills[skillIndex].condition = newCondition;
             this.saveGame();
         }
