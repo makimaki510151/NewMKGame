@@ -53,11 +53,11 @@ const MASTER_DATA = {
         calm: { name: "鎮静", desc: "ターゲットヘイト-20", calc: (s) => { s.hateReduce += 20; } }
     },
     CRYSTALS: {
-        power_up: { name: "真・強打", desc: "対象HP100%で威力5倍", crystalCalc: (s) => { s.firstStrikeMul = 5.0; } },
+        power_up: { name: "真・強打", desc: "対象HP50%以上で威力5倍", crystalCalc: (s) => { s.firstStrikeMul = 5.0; } },
         ct_down: { name: "真・神速", desc: "40%で即再行動", crystalCalc: (s) => { s.instantExtraTurn = 0.4; } },
         life_steal: { name: "真・吸血", desc: "吸血超過回復を次威力に加算", crystalCalc: (s) => { s.overflowLifeSteal = true; } },
         double_cast: { name: "真・追撃", desc: "追撃が連鎖する(減衰90%)", crystalCalc: (s) => { s.chainDouble = 0.9; } },
-        berserk: { name: "真・諸刃", desc: "HP1になるが3回無効化", crystalCalc: (s) => { s.berserkImmune = 3; } },
+        berserk: { name: "真・諸刃", desc: "自傷ダメージを1度に最大体力の30%受けると自傷の1%分威力に加算する", crystalCalc: (s) => { s.berserkImmune = 0.3; } },
         heavy: { name: "真・鈍重", desc: "威力+30%/CT+50%/敵をスタン", crystalCalc: (s) => { s.power *= 1.3; s.coolTime *= 1.5; s.stunEnemy = true; } },
         meditation: { name: "真・瞑想", desc: "威力-20%/全ステ永続3%UP", crystalCalc: (s) => { s.power *= 0.8; s.permanentGrowth = 0.03; } },
         quick_step: { name: "真・軽業", desc: "2回連続発動/CT通常", crystalCalc: (s) => { s.doubleRepeat = true; } },

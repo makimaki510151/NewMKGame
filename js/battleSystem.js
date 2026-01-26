@@ -115,6 +115,11 @@ class BattleSystem {
             if (result.log) {
                 result.log += ` (反動で ${selfDmg} ダメージ！)`;
             }
+
+            if (skill.berserkImmune && chara.maxHp * skill.berserkImmune <= selfDmg) {
+                chara.nextDamageBonus = (chara.nextDamageBonus || 0) + selfDmg * 0.01
+                result.log += ` (【真・諸刃】条件通過)`;
+            }
         }
 
         // 【真・軽業】2回連続発動（CTは消費済みなのでそのまま2回目）
@@ -146,11 +151,6 @@ class BattleSystem {
             mDef: baseStats.mDef * buffs.mDef
         };
 
-        if (skill.berserkImmune) {
-            baseStats.hp = 1;
-            chara.damageImmuneCount = (chara.damageImmuneCount || 0) + skill.berserkImmune;
-        }
-
         const target = this.selectTarget(actor, skill, allUnits);
         if (!target) return { log: "" };
 
@@ -162,7 +162,7 @@ class BattleSystem {
         const targetMaxHp = target.type === 'player' ? target.data.currentMaxHp : (target.data.maxHp || target.data.hp);
 
         let powerMult = skill.power;
-        if (skill.firstStrikeMul && dBase.hp >= targetMaxHp) powerMult *= skill.firstStrikeMul;
+        if (skill.firstStrikeMul && dBase.hp >= targetMaxHp * 0.5) powerMult *= skill.firstStrikeMul;
         if (skill.desperatePower) powerMult *= (1 + (1 - baseStats.hp / currentMaxHp) * 2);
 
         let log = "";
@@ -172,8 +172,8 @@ class BattleSystem {
             dBase.hp = Math.min(targetMaxHp, dBase.hp + healAmt);
             log = `${chara.name}の[${skill.name}]！ ${target.data.name}のHPが ${healAmt} 回復。`;
         } else {
-            let dmg = (skill.type === "physical") ? (aStats.pAtk * powerMult / Math.max(1, dStats.pDef)) : (aStats.mAtk * powerMult / Math.max(1, dStats.mDef));
-            dmg = Math.floor(dmg + (chara.nextDamageBonus || 0));
+            let dmg = (skill.type === "physical") ? (aStats.pAtk * (powerMult + chara.nextDamageBonus) / Math.max(1, dStats.pDef)) : (aStats.mAtk * (powerMult + chara.nextDamageBonus) / Math.max(1, dStats.mDef));
+            dmg = Math.floor(dmg);
             chara.nextDamageBonus = 0;
 
             if (target.data.damageImmuneCount > 0) {
