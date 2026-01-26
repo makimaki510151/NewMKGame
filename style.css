@@ -107,6 +107,8 @@ button:active {
     justify-content: center;
     align-items: flex-start;
     padding-bottom: 20px;
+    /* 折り返しを許可 */
+    flex-wrap: wrap; 
 }
 
 #equip-party-list,
@@ -114,7 +116,10 @@ button:active {
 #equip-fragment-list,
 #equip-crystal-list {
     flex: 1;
+    /* 最小幅の指定を解除または縮小し、画面幅に合わせる */
     min-width: 300px;
+    /* スマホ等の横幅が狭い端末では100%にする */
+    width: 100%;
     background: var(--card-bg);
     padding: 15px;
     border-radius: var(--radius);
@@ -249,13 +254,16 @@ button:active {
 .btn-back {
     display: block;
     width: 100%;
-    max-width: 400px; /* 横に広がりすぎないよう制限 */
-    margin: 20px auto;   /* 周囲に余白を持たせる */
+    max-width: 400px;
+    /* 横に広がりすぎないよう制限 */
+    margin: 20px auto;
+    /* 周囲に余白を持たせる */
     padding: 15px 20px;
     font-size: 1.1rem;
     font-weight: bold;
     color: #fff;
-    background-color: #444; /* 既存のイメージを維持 */
+    background-color: #444;
+    /* 既存のイメージを維持 */
     border: 1px solid var(--border-light, #555);
     border-radius: var(--radius);
     cursor: pointer;
@@ -274,17 +282,22 @@ button:active {
 /* メインメニューのレイアウト調整 */
 .main-menu {
     display: flex;
-    flex-direction: column; /* 縦に並べる */
-    align-items: center;    /* 要素を中央に寄せる */
-    gap: 15px;              /* ボタン同士の隙間 */
+    flex-direction: column;
+    /* 縦に並べる */
+    align-items: center;
+    /* 要素を中央に寄せる */
+    gap: 15px;
+    /* ボタン同士の隙間 */
     width: 100%;
     margin-top: 20px;
 }
 
 /* メインメニュー内のボタン幅を制限 */
 .main-menu .menu-button {
-    max-width: 400px;       /* ボタンの最大幅を制限 */
-    width: 100%;            /* スマホなどの狭い画面では横幅いっぱいに */
+    max-width: 400px;
+    /* ボタンの最大幅を制限 */
+    width: 100%;
+    /* スマホなどの狭い画面では横幅いっぱいに */
 }
 
 /* マップ選択リストのコンテナ */
@@ -300,22 +313,25 @@ button:active {
 #map-list button {
     appearance: none;
     width: 100%;
-    max-width: 500px; /* 他のボタンより一回り大きく */
-    min-height: 80px;  /* 高さをしっかり出す */
+    max-width: 500px;
+    /* 他のボタンより一回り大きく */
+    min-height: 80px;
+    /* 高さをしっかり出す */
     padding: 20px;
-    font-size: 1.4rem; /* 文字を大きく */
+    font-size: 1.4rem;
+    /* 文字を大きく */
     font-weight: 900;
     color: #fff;
     cursor: pointer;
-    
+
     /* 冒険の舞台をイメージした特別なグラデーション */
     background: linear-gradient(135deg, #2c3e50 0%, #000000 100%);
-    
+
     /* 縁取りと光沢感 */
     border: 2px solid var(--accent);
     border-radius: var(--radius);
     box-shadow: 0 4px 15px rgba(74, 158, 255, 0.3);
-    
+
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
@@ -348,40 +364,50 @@ button:active {
 
 /* 戦闘ログの調整：緑文字 & スクロール */
 #battle-log {
-    height: 250px;           /* ログの表示高さを固定 */
-    overflow-y: auto;        /* 縦スクロールを有効に */
-    background-color: #050505; /* 黒背景で視認性を向上 */
+    height: 250px;
+    /* ログの表示高さを固定 */
+    overflow-y: auto;
+    /* 縦スクロールを有効に */
+    background-color: #050505;
+    /* 黒背景で視認性を向上 */
     border: 1px solid var(--border);
     padding: 10px;
     margin-top: 15px;
     border-radius: var(--radius-small);
-    
+
     /* ログの文字色を緑色に統一 */
     color: #00ff00;
-    font-family: 'Courier New', Courier, monospace; /* コンソール風のフォント */
+    font-family: 'Courier New', Courier, monospace;
+    /* コンソール風のフォント */
     font-size: 0.9rem;
     line-height: 1.6;
-    text-shadow: 0 0 5px rgba(0, 255, 0, 0.5); /* ほんのり光らせる */
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+    /* ほんのり光らせる */
 }
 
 /* 戦闘ボタンを大きく押しやすくする */
 #btn-attack-hold {
     display: block;
     width: 100%;
-    max-width: 500px;        /* ボタンが広がりすぎないよう制限 */
-    height: 100px;           /* 高さを出して押しやすく */
-    margin: 20px auto;       /* 中央寄せ */
-    font-size: 1.8rem;       /* 文字をかなり大きく */
+    max-width: 500px;
+    /* ボタンが広がりすぎないよう制限 */
+    height: 100px;
+    /* 高さを出して押しやすく */
+    margin: 20px auto;
+    /* 中央寄せ */
+    font-size: 1.8rem;
+    /* 文字をかなり大きく */
     font-weight: 900;
     color: #fff;
     cursor: pointer;
-    
+
     /* 強調された赤いデザイン（戦闘のイメージ） */
     background: linear-gradient(135deg, #2fd34a 0%, #008b2e 100%);
     border: 3px solid #5cff4d;
-    border-radius: 50px;     /* 丸みをつけて押し心地を表現 */
+    border-radius: 50px;
+    /* 丸みをつけて押し心地を表現 */
     box-shadow: 0 6px 20px rgba(47, 211, 61, 0.4);
-    
+
     transition: all 0.2s ease;
     text-transform: uppercase;
 }
@@ -394,7 +420,8 @@ button:active {
 }
 
 #btn-attack-hold:active {
-    transform: scale(0.95); /* 押したときに少し凹む演出 */
+    transform: scale(0.95);
+    /* 押したときに少し凹む演出 */
     box-shadow: 0 2px 10px rgba(47, 211, 55, 0.3);
     background: #008b00;
 }
