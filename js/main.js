@@ -472,8 +472,10 @@ class GameController {
 
                         fragmentSlotsHtml += `
                         <div class="fragment-slot ${filledClass} tooltip" 
-                             style="width:24px; height:24px; border:${borderStyle}; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; background:${slotBg}; color:#000; box-shadow:${isSlotSelected ? '0 0 8px #4a9eff' : 'none'};"
-                             onclick="event.stopPropagation(); gameApp.selectFragmentSlot('${chara.id}', ${sIndex}, ${slotIdx})">
+                                style="width:24px; height:24px; border:${borderStyle}; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; background:${slotBg}; color:#000; box-shadow:${isSlotSelected ? '0 0 8px #4a9eff' : 'none'};"
+                                onclick="event.stopPropagation(); gameApp.selectFragmentSlot('${chara.id}', ${sIndex}, ${slotIdx})"
+                                ondragover="event.preventDefault();"
+                                ondrop="event.preventDefault(); gameApp.handleDropFragment(event, '${chara.id}', ${sIndex}, ${slotIdx})">
                             ${label}
                             <span class="tooltip-text">${detailText}<br>(クリックで選択/外す)</span>
                         </div>`;
@@ -1048,7 +1050,7 @@ class GameController {
         this.renderEquipScene();
     }
 
-    // 選択中のスロットにかげらをはめるメソッド（新規追加）
+    // 選択中のスロットにかけらをはめるメソッド（新規追加）
     attachFragmentToSelectedSlot(fragmentUniqueId) {
         if (!this.selectedSlot) return;
         const { charaId, skillIndex, slotIndex } = this.selectedSlot;
@@ -1082,6 +1084,7 @@ class GameController {
         const fragment = this.skillManager.popFragment(fragmentUniqueId);
         if (fragment) {
             chara.skills[skillIndex].slots[slotIndex] = fragment;
+            if(this.selectedFragmentIds.includes(String(fragmentUniqueId)))this.toggleFragmentSelection(fragmentUniqueId);
             this.saveGame();
             this.renderEquipScene();
         }

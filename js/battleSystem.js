@@ -103,6 +103,20 @@ class BattleSystem {
         // メイン行動の実行
         let result = this.performMove(actor, skill, allUnits);
 
+        if (skill.selfDamage && skill.selfDamage > 0) {
+            const isPlayer = actor.type === 'player';
+            const chara = actor.data;
+            const stats = isPlayer ? chara.stats : chara;
+            const maxHp = isPlayer ? chara.currentMaxHp : (chara.maxHp || chara.hp);
+
+            const selfDmg = Math.floor(maxHp * skill.selfDamage);
+            stats.hp = Math.max(1, stats.hp - selfDmg); // 1残るように設定
+
+            if (result.log) {
+                result.log += ` (反動で ${selfDmg} ダメージ！)`;
+            }
+        }
+
         // 【真・軽業】2回連続発動（CTは消費済みなのでそのまま2回目）
         if (skill.doubleRepeat) {
             let secondResult = this.performMove(actor, skill, allUnits);
