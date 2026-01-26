@@ -192,6 +192,12 @@ class BattleSystem {
                 dBase.hp -= dmg;
                 log = `${chara.name}の[${skill.name}]！ ${target.data.name}に ${dmg} のダメージ！`;
 
+                // 【追加】真・残像のマーク付与
+                if (skill.markEcho) {
+                    target.data.markedBy = actor;
+                    log += ` ${target.data.name}をマークした！`;
+                }
+
                 if (skill.lifeSteal) {
                     let steal = Math.floor(dmg * skill.lifeSteal);
                     const overflow = Math.max(0, (baseStats.hp + steal) - currentMaxHp);
@@ -233,8 +239,17 @@ class BattleSystem {
         }
         if (skill.resetHate && target.type === 'player') target.data.currentHate = 0;
 
-        const followUp = this.executeFollowUp(actor, skill, allUnits);
-        if (followUp.log) log += " " + followUp.log;
+        // 【追加】真・残像の追撃発動チェック（味方がマークされた敵を攻撃した場合）
+        if (target.data.markedBy && target.data.markedBy.type === actor.type && target.data.markedBy !== actor) {
+            const shader = target.data.markedBy;
+            const echoResult = this.executeFollowUp(shader, skill, allUnits, 1.0); // 100%発動
+            if (echoResult.log) log += ` [残像追撃] ${echoResult.log}`;
+        }
+        else {
+            const followUp = this.executeFollowUp(actor, skill, allUnits);
+            if (followUp.log) log += " " + followUp.log;
+        }
+        
 
         return { log };
     }
