@@ -9,8 +9,17 @@ class BattleSystem {
         let isBattleEnd = false;
         let winner = null;
 
-        party.forEach(p => p.currentHate = 0);
-        enemies.forEach(e => e.currentHate = 0);
+        party.forEach(p => {
+            p.currentHate = 0;
+            // 真・瞑想などの戦闘内バフをリセット
+            p.battleBuffs = { pAtk: 1.0, pDef: 1.0, mAtk: 1.0, mDef: 1.0, spd: 1.0 };
+            p.damageImmuneCount = 0;
+            p.nextDamageBonus = 0;
+        });
+        enemies.forEach(e => {
+            e.currentHate = 0;
+            e.battleBuffs = { pAtk: 1.0, pDef: 1.0, mAtk: 1.0, mDef: 1.0, spd: 1.0 };
+        });
 
         const units = [
             ...party.map(u => ({ type: 'player', data: u, ct: 0 })),
@@ -73,108 +82,119 @@ class BattleSystem {
 
         let selectedSkillId = "attack";
         let sInfoRef = null;
-
-        // 共通のスキルリスト取得
         const skillList = isPlayer ? chara.skills : (chara.skills || []);
 
-        // 使用可能なスキルの選定
         for (let i = skillList.length - 1; i >= 0; i--) {
             const sInfo = skillList[i];
             const sData = isPlayer ? chara.getSkillEffectiveData(sInfo) : this.getEnemySkillData(sInfo);
-
-            const isAvailable = (sInfo.currentCoolDown || 0) <= 0;
-            const isConditionMet = this.checkSkillCondition(actor, sInfo.condition || 'always', allUnits);
-
-            if (isAvailable && isConditionMet) {
+            if (this.checkSkillCondition(actor, sInfo.condition || 'always', allUnits) && (sInfo.currentCoolDown || 0) <= 0) {
                 selectedSkillId = sInfo.id;
                 sInfoRef = sInfo;
                 sInfo.currentCoolDown = sData.coolTime || 0;
                 break;
             }
         }
+        skillList.forEach(s => { if (s.currentCoolDown > 0) s.currentCoolDown--; });
 
-        // 行動ごとに全スキルのクールダウンを1減らす
-        skillList.forEach(s => {
-            if (s.currentCoolDown > 0) s.currentCoolDown--;
-        });
-
-        // 最終的なスキルデータの確定
         const skill = isPlayer
             ? chara.getSkillEffectiveData(sInfoRef || { id: selectedSkillId })
             : this.getEnemySkillData(sInfoRef || { id: selectedSkillId });
 
-        // ターゲット選定
+        // メイン行動の実行
+        let result = this.performMove(actor, skill, allUnits);
+
+        // 【真・軽業】2回連続発動（CTは消費済みなのでそのまま2回目）
+        if (skill.doubleRepeat) {
+            let secondResult = this.performMove(actor, skill, allUnits);
+            result.log += " [連続発動] " + secondResult.log;
+        }
+
+        // 行動後のCT操作（真・神速）
+        if (skill.instantExtraTurn && Math.random() < skill.instantExtraTurn) {
+            actor.ct += this.maxCt;
+            result.log += ` ${chara.name}は即再行動の機会を得た！`;
+        }
+
+        return result;
+    }
+
+    // 実際のダメージ・回復・特殊効果処理を分離
+    performMove(actor, skill, allUnits) {
+        const isPlayer = actor.type === 'player';
+        const chara = actor.data;
+        const baseStats = isPlayer ? chara.stats : chara;
+        const buffs = chara.battleBuffs || { pAtk: 1, pDef: 1, mAtk: 1, mDef: 1, spd: 1 };
+
+        const aStats = {
+            pAtk: baseStats.pAtk * buffs.pAtk,
+            pDef: baseStats.pDef * buffs.pDef,
+            mAtk: baseStats.mAtk * buffs.mAtk,
+            mDef: baseStats.mDef * buffs.mDef
+        };
+
+        if (skill.berserkImmune) {
+            baseStats.hp = 1;
+            chara.damageImmuneCount = (chara.damageImmuneCount || 0) + skill.berserkImmune;
+        }
+
         const target = this.selectTarget(actor, skill, allUnits);
         if (!target) return { log: "" };
 
-        // --- 3. 実行（計算と適用） ---
-        const aStats = isPlayer ? chara.stats : chara;
-        const dStats = target.type === 'player' ? target.data.stats : target.data;
-        const targetName = target.data.name;
-        const attackerName = chara.name;
+        const dBase = target.type === 'player' ? target.data.stats : target.data;
+        const dBuffs = target.data.battleBuffs || { pDef: 1, mDef: 1 };
+        const dStats = { pDef: dBase.pDef * dBuffs.pDef, mDef: dBase.mDef * dBuffs.mDef };
+
         const currentMaxHp = isPlayer ? chara.currentMaxHp : (chara.maxHp || chara.hp);
+        const targetMaxHp = target.type === 'player' ? target.data.currentMaxHp : (target.data.maxHp || target.data.hp);
 
-        let logs = [];
+        let powerMult = skill.power;
+        if (skill.firstStrikeMul && dBase.hp >= targetMaxHp) powerMult *= skill.firstStrikeMul;
+        if (skill.desperatePower) powerMult *= (1 + (1 - baseStats.hp / currentMaxHp) * 2);
 
-        // スキル本体の処理
+        let log = "";
+
         if (skill.type === "heal") {
-            const healAmt = Math.floor(aStats.mAtk * skill.power);
-            const tMaxHp = target.type === 'player' ? target.data.currentMaxHp : (target.data.maxHp || target.data.hp);
-            dStats.hp = Math.min(tMaxHp, dStats.hp + healAmt);
-            logs.push(`${attackerName}の[${skill.name}]！ ${targetName}のHPが ${healAmt} 回復。`);
+            let healAmt = Math.floor(aStats.mAtk * powerMult);
+            dBase.hp = Math.min(targetMaxHp, dBase.hp + healAmt);
+            log = `${chara.name}の[${skill.name}]！ ${target.data.name}のHPが ${healAmt} 回復。`;
         } else {
-            let dmg = 0;
-            if (skill.type === "physical") {
-                const rawDmg = aStats.pAtk * skill.power;
-                dmg = rawDmg / Math.max(1, dStats.pDef);
-            } else if (skill.type === "magical") {
-                const rawDmg = aStats.mAtk * skill.power;
-                dmg = rawDmg / Math.max(1, dStats.mDef);
+            let dmg = (skill.type === "physical") ? (aStats.pAtk * powerMult / Math.max(1, dStats.pDef)) : (aStats.mAtk * powerMult / Math.max(1, dStats.mDef));
+            dmg = Math.floor(dmg + (chara.nextDamageBonus || 0));
+            chara.nextDamageBonus = 0;
+
+            if (target.data.damageImmuneCount > 0) {
+                dmg = 0; target.data.damageImmuneCount--;
+                log = `${target.data.name}は攻撃を無効化した！`;
+            } else {
+                dmg = Math.max(1, dmg);
+                dBase.hp -= dmg;
+                log = `${chara.name}の[${skill.name}]！ ${target.data.name}に ${dmg} のダメージ！`;
+
+                // ライフスティール（既存ロジック）と【真・吸血】
+                if (skill.lifeSteal) {
+                    let steal = Math.floor(dmg * skill.lifeSteal);
+                    const overflow = Math.max(0, (baseStats.hp + steal) - currentMaxHp);
+                    baseStats.hp = Math.min(currentMaxHp, baseStats.hp + steal);
+                    log += ` ${chara.name}は ${steal} 吸収！`;
+
+                    if (skill.overflowLifeSteal && overflow > 0) {
+                        chara.nextDamageBonus = (chara.nextDamageBonus || 0) + overflow;
+                    }
+                }
             }
-            dmg = Math.max(1, Math.floor(dmg));
-            dStats.hp -= dmg;
-            logs.push(`${attackerName}の[${skill.name}]！ ${targetName}に ${dmg} のダメージ！`);
-
-            if (skill.lifeSteal > 0) {
-                const stealAmt = Math.floor(dmg * skill.lifeSteal);
-                aStats.hp = Math.min(currentMaxHp, aStats.hp + stealAmt);
-                logs.push(`${attackerName}は生命力を吸収し ${stealAmt} 回復。`);
-            }
+            if (skill.stunEnemy) { target.ct = Math.max(0, target.ct - 50); log += ` スタン付与！`; }
         }
 
-        if (isPlayer) {
-            const finalHateGain = Math.floor((skill.hate || 10) * (skill.hateMod || 1.0));
-            chara.currentHate = (chara.currentHate || 0) + finalHateGain;
+        if (skill.permanentGrowth) {
+            ["pAtk", "pDef", "mAtk", "mDef", "spd"].forEach(k => chara.battleBuffs[k] *= (1 + skill.permanentGrowth));
         }
+        if (skill.resetHate && target.type === 'player') target.data.currentHate = 0;
 
-        // 相手のヘイトを減少させる効果（挑発解除スキルなど）
-        if (skill.hateReduce > 0 && target.type === 'player') {
-            target.data.currentHate = Math.max(0, (target.data.currentHate || 0) - skill.hateReduce);
-            logs.push(`${targetName}のヘイトが減少した。`);
-        }
+        // 追撃判定
+        const followUp = this.executeFollowUp(actor, skill, allUnits);
+        if (followUp.log) log += " " + followUp.log;
 
-        // かけらの追加効果（自傷・瞑想）
-        if (skill.selfDamage > 0) {
-            const selfDmg = Math.floor(currentMaxHp * skill.selfDamage);
-            aStats.hp = Math.max(1, aStats.hp - selfDmg);
-            logs.push(`${attackerName}は反動で ${selfDmg} ダメージ。`);
-        }
-
-        if (skill.healSelf) {
-            const meditationHeal = Math.floor(aStats.mAtk * 0.5);
-            aStats.hp = Math.min(currentMaxHp, aStats.hp + meditationHeal);
-            logs.push(`${attackerName}は自身のHPを${meditationHeal}回復。`);
-        }
-
-        // --- 4. 追撃（再発動）の処理 ---
-        if (skill.doubleChance > 0 && Math.random() < skill.doubleChance) {
-            logs.push(`>> 追撃発動！`);
-            // 追撃時もターゲットを再選定（ヘイト基準）
-            const followUpResult = this.executeFollowUp(actor, skill, allUnits);
-            if (followUpResult.log) logs.push(followUpResult.log);
-        }
-
-        return { log: logs.join(" ") };
+        return { log };
     }
 
     // battleSystem.js 内のメソッドを更新
@@ -222,69 +242,57 @@ class BattleSystem {
         }
     }
 
-    // 敵のスキル情報をレベル・かけら込みの実行データに変換
-    getEnemySkillData(sInfo) {
-        const base = MASTER_DATA.SKILLS[sInfo.id] || MASTER_DATA.SKILLS.attack;
-        const level = sInfo.level || 1;
-        const fragments = sInfo.fragments || [];
-        const growth = base.growth || {};
+    executeFollowUp(actor, skill, allUnits, chainCount = 0) {
+        let chance = (chainCount === 0) ? (skill.doubleChance || 0) : (skill.chainDouble || 0);
+        if (Math.random() >= chance) return { log: "" };
 
-        // 1. 基本性能にレベル成長を適用
-        // growth: { power: 0.2, coolTime: -0.1 } のような設定を想定
-        let effective = {
-            ...base,
-            power: base.power + (growth.power || 0) * (level - 1),
-            coolTime: Math.max(0, (base.coolTime || 0) + (growth.coolTime || 0) * (level - 1)),
-            level: level
-        };
-
-        // 2. 輝きのかけらの効果を反映（最大9つ）
-        fragments.slice(0, 9).forEach(fragId => {
-            const fData = MASTER_DATA.FRAGMENTS[fragId];
-            if (!fData) return;
-
-            // 各種ステータス補正の合算
-            if (fData.powerMod) effective.power += fData.powerMod;
-            if (fData.coolTimeMod) effective.coolTime = Math.max(0, effective.coolTime + fData.coolTimeMod);
-            if (fData.doubleChance) effective.doubleChance = (effective.doubleChance || 0) + fData.doubleChance;
-            if (fData.selfDamage) effective.selfDamage = (effective.selfDamage || 0) + fData.selfDamage;
-            if (fData.lifeSteal) effective.lifeSteal = (effective.lifeSteal || 0) + fData.lifeSteal;
-            if (fData.healSelf) effective.healSelf = true; // 瞑想効果の付与
-        });
-
-        return effective;
-    }
-
-    // 追撃専用の軽量メソッド（CT消費などを行わない）
-    executeFollowUp(actor, skill, allUnits) {
-        const isPlayer = actor.type === 'player';
         const chara = actor.data;
-
-        // ターゲット再選定（前のターゲットが死んでいる可能性があるため）
         const target = this.selectTarget(actor, skill, allUnits);
         if (!target) return { log: "" };
 
-        const aStats = isPlayer ? chara.stats : chara;
-        const dStats = target.type === 'player' ? target.data.stats : target.data;
+        const baseStats = actor.type === 'player' ? chara.stats : chara;
+        const buffs = chara.battleBuffs || { pAtk: 1, mAtk: 1 };
+        const dBase = target.type === 'player' ? target.data.stats : target.data;
+        const dBuffs = target.data.battleBuffs || { pDef: 1, mDef: 1 };
 
-        let dmgOrHeal = 0;
-        if (skill.type === "heal") {
-            dmgOrHeal = Math.floor(aStats.mAtk * skill.power);
-            const tMaxHp = target.type === 'player' ? target.data.currentMaxHp : (target.data.maxHp || target.data.hp);
-            dStats.hp = Math.min(tMaxHp, dStats.hp + dmgOrHeal);
-            return { log: `[追撃] ${target.data.name}のHPを ${dmgOrHeal} 回復！` };
-        } else {
-            if (skill.type === "physical") {
-                const rawDmg = aStats.pAtk * skill.power;
-                dmgOrHeal = rawDmg / Math.max(1, dStats.pDef);
-            } else if (skill.type === "magical") {
-                const rawDmg = aStats.mAtk * skill.power;
-                dmgOrHeal = rawDmg / Math.max(1, dStats.mDef);
-            }
-            dmgOrHeal = Math.max(1, Math.floor(dmgOrHeal));
-            dStats.hp -= dmgOrHeal;
-            return { log: `[追撃] ${target.data.name}に ${dmgOrHeal} ダメージ！` };
+        let dmg = (skill.type === "physical")
+            ? (baseStats.pAtk * buffs.pAtk * skill.power / Math.max(1, dBase.pDef * dBuffs.pDef))
+            : (baseStats.mAtk * buffs.mAtk * skill.power / Math.max(1, dBase.mDef * dBuffs.mDef));
+
+        dmg = Math.max(1, Math.floor(dmg));
+        dBase.hp -= dmg;
+        let currentLog = `[追撃] ${target.data.name}に ${dmg} ダメージ！`;
+
+        // 真・追撃の連鎖
+        if (skill.chainDouble) {
+            const next = this.executeFollowUp(actor, skill, allUnits, chainCount + 1);
+            if (next.log) currentLog += " " + next.log;
         }
+        return { log: currentLog };
+    }
+
+    getEnemySkillData(sInfo) {
+        const base = MASTER_DATA.SKILLS[sInfo.id] || MASTER_DATA.SKILLS.attack;
+        const level = sInfo.level || 1;
+        let effective = {
+            ...base,
+            power: base.power + (base.growth?.power || 0) * (level - 1),
+            coolTime: Math.max(0, (base.coolTime || 0) + (base.growth?.coolTime || 0) * (level - 1)),
+        };
+
+        if (sInfo.fragments) {
+            sInfo.fragments.forEach(fragId => {
+                const fData = MASTER_DATA.FRAGMENT_EFFECTS[fragId];
+                if (fData && fData.calc) fData.calc(effective);
+            });
+        }
+        if (sInfo.crystals) {
+            sInfo.crystals.forEach(crysId => {
+                const cData = MASTER_DATA.CRYSTALS[crysId];
+                if (cData && cData.crystalCalc) cData.crystalCalc(effective);
+            });
+        }
+        return effective;
     }
 
     // スキルの使用条件を判定するヘルパー

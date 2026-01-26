@@ -54,8 +54,8 @@ const MASTER_DATA = {
     },
     CRYSTALS: {
         power_up: { name: "真・強打", desc: "対象HP100%で威力5倍", crystalCalc: (s) => { s.firstStrikeMul = 5.0; } },
-        ct_down: { name: "真・神速", desc: "20%で即再行動", crystalCalc: (s) => { s.instantExtraTurn = 0.2; } },
-        life_steal: { name: "真・吸血", desc: "超過回復を次威力に加算", crystalCalc: (s) => { s.overflowLifeSteal = true; } },
+        ct_down: { name: "真・神速", desc: "40%で即再行動", crystalCalc: (s) => { s.instantExtraTurn = 0.4; } },
+        life_steal: { name: "真・吸血", desc: "吸血超過回復を次威力に加算", crystalCalc: (s) => { s.overflowLifeSteal = true; } },
         double_cast: { name: "真・追撃", desc: "追撃が連鎖する(減衰90%)", crystalCalc: (s) => { s.chainDouble = 0.9; } },
         berserk: { name: "真・諸刃", desc: "HP1になるが3回無効化", crystalCalc: (s) => { s.berserkImmune = 3; } },
         heavy: { name: "真・鈍重", desc: "威力+30%/CT+50%/敵をスタン", crystalCalc: (s) => { s.power *= 1.3; s.coolTime *= 1.5; s.stunEnemy = true; } },
