@@ -98,18 +98,13 @@ class Character {
             });
         }
 
+
         // クリスタルの効果適用
-        if (sInfo.crystals && Array.isArray(sInfo.crystals)) {
-            sInfo.crystals.forEach(crysId => {
-                // MASTER_DATA.CRYSTALS から定義を取得
-                const cData = MASTER_DATA.CRYSTALS[crysId];
-                if (cData) {
-                    // クリスタル用の計算関数を実行（プロパティ名は定義に合わせて調整してください）
-                    if (typeof cData.crystalCalc === 'function') {
-                        cData.crystalCalc(effective);
-                    }
-                }
-            });
+        if (sInfo.crystalSlot) {
+            const cData = MASTER_DATA.CRYSTALS[sInfo.crystalSlot.baseEffectId];
+            if (cData) {
+                cData.crystalCalc(effective);
+            }
         }
 
         return effective;

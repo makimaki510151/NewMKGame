@@ -50,7 +50,7 @@ class BattleSystem {
                 let repeatCount = 0;
                 let hasExtraTurn = true;
 
-                while (hasExtraTurn && repeatCount < 3) { // 無限ループ防止のため最大3回まで
+                while (hasExtraTurn && repeatCount < 5) { // 無限ループ防止のため最大3回まで
                     const result = this.executeAction(actor, units);
                     if (result.log) logs.push(result.log);
 
@@ -143,6 +143,10 @@ class BattleSystem {
         if (skill.doubleRepeat) {
             let secondResult = this.performMove(actor, skill, allUnits);
             result.log += " [連続発動] " + secondResult.log;
+        }
+
+        if (skill.instantExtraTurn && Math.random() < skill.instantExtraTurn) {
+            result.hasExtraTurn = true;
         }
 
         return result;
