@@ -47,24 +47,45 @@ class BattleSystem {
                 const actorStats = actor.type === 'player' ? actor.data.stats : actor.data;
                 if (actorStats.hp <= 0) continue;
 
-                const result = this.executeAction(actor, units);
-                if (result.log) logs.push(result.log);
-                actor.ct -= this.maxCt;
+                let repeatCount = 0;
+                let hasExtraTurn = true;
 
-                const alivePlayers = units.filter(u => u.type === 'player' && u.data.stats.hp > 0);
-                const aliveEnemies = units.filter(u => u.type === 'enemy' && u.data.hp > 0);
+                while (hasExtraTurn && repeatCount < 3) { // 無限ループ防止のため最大3回まで
+                    const result = this.executeAction(actor, units);
+                    if (result.log) logs.push(result.log);
 
-                if (aliveEnemies.length === 0) {
-                    winner = 'player';
-                    isBattleEnd = true;
-                    logs.push("敵を全滅させた！");
-                    break;
-                } else if (alivePlayers.length === 0) {
-                    winner = 'enemy';
-                    isBattleEnd = true;
-                    logs.push("全滅した...");
-                    break;
+                    // 真・神速などが発動したかチェック
+                    // executeAction内で判定した結果、再行動フラグが立っているかを確認
+                    if (result.hasExtraTurn) {
+                        repeatCount++;
+                        // ログに再行動中であることを明記
+                        logs.push(`${actor.data.name}の連続行動！ (${repeatCount}回目)`);
+
+                        // 生存確認（反動ダメージ等で自滅していないか）
+                        if (actorStats.hp <= 0) {
+                            hasExtraTurn = false;
+                        }
+                    } else {
+                        hasExtraTurn = false;
+                    }
+
+                    // 決着判定
+                    const alivePlayers = units.filter(u => u.type === 'player' && u.data.stats.hp > 0);
+                    const aliveEnemies = units.filter(u => u.type === 'enemy' && u.data.hp > 0);
+
+                    if (aliveEnemies.length === 0) {
+                        winner = 'player';
+                        isBattleEnd = true;
+                        logs.push("敵を全滅させた！");
+                        break;
+                    } else if (alivePlayers.length === 0) {
+                        winner = 'enemy';
+                        isBattleEnd = true;
+                        logs.push("全滅した...");
+                        break;
+                    }
                 }
+                actor.ct -= this.maxCt;
             }
         }
 
@@ -124,11 +145,6 @@ class BattleSystem {
             result.log += " [連続発動] " + secondResult.log;
         }
 
-        if (skill.instantExtraTurn && Math.random() < skill.instantExtraTurn) {
-            actor.ct += this.maxCt;
-            result.log += ` ${chara.name}は即再行動の機会を得た！`;
-        }
-
         return result;
     }
 
@@ -137,7 +153,7 @@ class BattleSystem {
         const chara = actor.data;
         const baseStats = isPlayer ? chara.stats : chara;
         const buffs = chara.battleBuffs || { pAtk: 1, pDef: 1, mAtk: 1, mDef: 1, spd: 1 };
-        
+
         // Bonusがundefinedにならないよう確保
         const nextBonus = chara.nextDamageBonus || 0;
 
@@ -153,9 +169,9 @@ class BattleSystem {
 
         const dBase = target.type === 'player' ? target.data.stats : target.data;
         const dBuffs = target.data.battleBuffs || { pDef: 1, mDef: 1 };
-        const dStats = { 
-            pDef: dBase.pDef * (dBuffs.pDef || 1), 
-            mDef: dBase.mDef * (dBuffs.mDef || 1) 
+        const dStats = {
+            pDef: dBase.pDef * (dBuffs.pDef || 1),
+            mDef: dBase.mDef * (dBuffs.mDef || 1)
         };
 
         const currentMaxHp = isPlayer ? chara.currentMaxHp : (chara.maxHp || chara.hp);
@@ -173,15 +189,15 @@ class BattleSystem {
             log = `${chara.name}の[${skill.name}]！ ${target.data.name}のHPが ${healAmt} 回復。`;
         } else {
             // nextBonusを加算。計算式全体がNaNにならないようMath.max(1, ...)でガード
-            let dmg = (skill.type === "physical") 
-                ? (aStats.pAtk * (powerMult + nextBonus) / Math.max(1, dStats.pDef)) 
+            let dmg = (skill.type === "physical")
+                ? (aStats.pAtk * (powerMult + nextBonus) / Math.max(1, dStats.pDef))
                 : (aStats.mAtk * (powerMult + nextBonus) / Math.max(1, dStats.mDef));
-            
+
             dmg = Math.floor(dmg);
             chara.nextDamageBonus = 0; // ボーナス消費
 
             if (target.data.damageImmuneCount > 0) {
-                dmg = 0; 
+                dmg = 0;
                 target.data.damageImmuneCount--;
                 log = `${target.data.name}は攻撃を無効化した！`;
             } else {
@@ -200,9 +216,9 @@ class BattleSystem {
                     }
                 }
             }
-            if (skill.stunEnemy) { 
-                target.ct = Math.max(0, target.ct - 50); 
-                log += ` スタン付与！`; 
+            if (skill.stunEnemy) {
+                target.ct = Math.max(0, target.ct - 50);
+                log += ` スタン付与！`;
             }
         }
 
@@ -313,9 +329,9 @@ class BattleSystem {
         switch (condition) {
             case 'hp_low': return hpRate <= 0.5;
             case 'hp_high': return hpRate > 0.5;
-            case 'enemy_many': 
+            case 'enemy_many':
                 return allUnits.filter(u => u.type !== actor.type && (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0)).length >= 3;
-            case 'ally_dead': 
+            case 'ally_dead':
                 return allUnits.filter(u => u.type === actor.type && (u.type === 'player' ? u.data.stats.hp <= 0 : u.data.hp <= 0)).length > 0;
             case 'always': return true;
             default: return true;
