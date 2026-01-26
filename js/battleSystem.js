@@ -216,13 +216,13 @@ class BattleSystem {
             const selfDmg = Math.floor(maxHp * skill.selfDamage);
             stats.hp = Math.max(1, stats.hp - selfDmg);
 
-            if (result.log) {
-                result.log += ` (反動で ${selfDmg} ダメージ！)`;
+            if (log) {
+                log += ` (反動で ${selfDmg} ダメージ！)`;
             }
 
             if (skill.berserkImmune && maxHp * skill.berserkImmune <= selfDmg) {
                 chara.nextDamageBonus = (chara.nextDamageBonus || 0) + selfDmg * 0.01;
-                result.log += ` (【真・諸刃】条件通過)`;
+                log += ` (【真・諸刃】条件通過)`;
             }
         }
 
@@ -280,7 +280,10 @@ class BattleSystem {
             chance = currentChance * (skill.chainDouble || 0);
         }
 
-        if (Math.random() >= chance) return { log: "" };
+        if (Math.random() <= chance) {
+
+            return { log: "" };
+        }
 
         const chara = actor.data;
         const target = this.selectTarget(actor, skill, allUnits);
@@ -320,6 +323,7 @@ class BattleSystem {
             dBase.hp -= dmg;
             currentLog = `[追撃] ${target.data.name}に ${dmg} ダメージ！`;
         }
+        console.log(currentLog)
 
         // chainDoubleが存在する場合、次回の判定へ
         if (skill.chainDouble) {
