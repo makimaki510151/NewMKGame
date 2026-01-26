@@ -105,16 +105,31 @@ class BattleSystem {
         let sInfoRef = null;
         const skillList = isPlayer ? chara.skills : (chara.skills || []);
 
-        for (let i = skillList.length - 1; i >= 0; i--) {
-            const sInfo = skillList[i];
+        // 1. 発動可能なスキルを抽出し、優先順位でソートする
+        const availableSkills = skillList
+            .filter(sInfo => {
+                // 条件チェックとCTチェック
+                return (sInfo.currentCoolDown || 0) <= 0 &&
+                    this.checkSkillCondition(actor, sInfo.condition || 'always', allUnits);
+            })
+            .sort((a, b) => {
+                // priorityが設定されていない場合は後回し(999)にする
+                const priA = a.priority !== undefined ? a.priority : 999;
+                const priB = b.priority !== undefined ? b.priority : 999;
+                return priA - priB;
+            });
+
+        // 2. 最優先のスキルがある場合はそれを選択
+        if (availableSkills.length > 0) {
+            const sInfo = availableSkills[0];
             const sData = isPlayer ? chara.getSkillEffectiveData(sInfo) : this.getEnemySkillData(sInfo);
-            if (this.checkSkillCondition(actor, sInfo.condition || 'always', allUnits) && (sInfo.currentCoolDown || 0) <= 0) {
-                selectedSkillId = sInfo.id;
-                sInfoRef = sInfo;
-                sInfo.currentCoolDown = (sData.coolTime || 0) + 1; // 実行ターンに-1されるため+1
-                break;
-            }
+
+            selectedSkillId = sInfo.id;
+            sInfoRef = sInfo;
+            sInfo.currentCoolDown = (sData.coolTime || 0) + 1; // 実行ターンに-1されるため+1
         }
+
+        // 3. 全スキルのCTを減少させる（既存の処理を維持）
         skillList.forEach(s => { if (s.currentCoolDown > 0) s.currentCoolDown--; });
 
         const skill = isPlayer

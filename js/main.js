@@ -437,12 +437,19 @@ class GameController {
                     const sData = chara.getSkillEffectiveData(sInfo);
                     const isAttack = sInfo.id === 'attack';
                     const currentCond = sInfo.condition || 'always';
+
+                    const currentPriority = sInfo.priority !== undefined ? sInfo.priority : 5;
+
                     const displayPower = (Math.floor(sData.power * 10) / 10).toFixed(1);
                     const displayCT = (Math.floor(sData.coolTime * 10) / 10).toFixed(1);
                     const displayHate = sData.hate || MASTER_DATA.SKILLS[sInfo.id]?.hate || 10;
 
                     let options = MASTER_DATA.SKILL_CONDITIONS.map(cond =>
                         `<option value="${cond.id}" ${currentCond === cond.id ? 'selected' : ''}>${cond.name}</option>`
+                    ).join('');
+
+                    let priorityOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(p =>
+                        `<option value="${p}" ${currentPriority == p ? 'selected' : ''}>${p}${p == 1 ? "優" : p == 9 ? "後" : ""}</option>`
                     ).join('');
 
                     // --- かけらスロットの生成 ---
@@ -511,9 +518,21 @@ class GameController {
 
                     skillSlotsHtml += `
                     <div class="skill-slot-item" style="border-bottom:1px solid #444; margin-bottom:5px; padding:5px; font-size:0.85em;">
-                        <strong>${sData.name}</strong> (威力:${displayPower} / CT:${displayCT} / <span style="color:#ffcc00;">ヘイト:${displayHate}</span>)<br>
-                        <select onchange="gameApp.changeSkillCondition('${chara.id}', ${sIndex}, this.value)">${options}</select>
-                        ${!isAttack ? `<button onclick="gameApp.unequipSkill('${chara.id}', ${sIndex})">外す</button>` : '<small> (固定)</small>'}
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                            <strong>${sData.name}</strong> 
+                            <span style="font-size:0.9em;">(威力:${displayPower} / CT:${displayCT} / <span style="color:#ffcc00;">ヘイト:${displayHate}</span>)</span>
+                        </div>
+                                
+                        <div style="display:flex; gap:5px; align-items:center; margin-bottom:5px;">
+                            <select style="background:#333; color:#fff; border:1px solid #666; font-size:0.8em;" 
+                                    onchange="gameApp.changeSkillPriority('${chara.id}', ${sIndex}, this.value)">
+                                ${priorityOptions}
+                            </select>
+                                
+                            <select onchange="gameApp.changeSkillCondition('${chara.id}', ${sIndex}, this.value)">${options}</select>
+                                
+                            ${!isAttack ? `<button onclick="gameApp.unequipSkill('${chara.id}', ${sIndex})">外す</button>` : '<small> (固定)</small>'}
+                        </div>
                         ${fragmentSlotsHtml}
                     </div>`;
                 });
@@ -809,6 +828,16 @@ class GameController {
         });
 
         container.appendChild(scrollBox);
+    }
+
+    changeSkillPriority(charaId, skillIndex, priorityValue) {
+        const chara = this.party.find(c => String(c.id) === String(charaId));
+        if (chara && chara.skills[skillIndex]) {
+            // 数値として保存
+            chara.skills[skillIndex].priority = parseInt(priorityValue);
+            this.saveGame();
+            // UIの再描画は不要（セレクトボックスの値は既に変わっているため）
+        }
     }
 
     // 選択状態を切り替えるメソッド

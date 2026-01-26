@@ -11,7 +11,7 @@ class Character {
         this.stats = { hp: 100, pAtk: 10, pDef: 10, mAtk: 10, mDef: 10, spd: 10 };
         this.currentHate = 0;
         this.skills = [
-            { id: "attack", currentCoolDown: 0, condition: "always", slots: [null, null, null] }
+            { id: "attack", currentCoolDown: 0, condition: "always", priority: 1, slots: [null, null, null] }
         ];
         if (this.skills) {
             this.skills = this.skills.map(s => {
