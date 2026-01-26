@@ -192,6 +192,12 @@ class BattleSystem {
                 dBase.hp -= dmg;
                 log = `${chara.name}の[${skill.name}]！ ${target.data.name}に ${dmg} のダメージ！`;
 
+                // 死亡ログの追加
+                if (dBase.hp <= 0) {
+                    dBase.hp = 0;
+                    log += ` ${target.data.name}は倒れた！`;
+                }
+
                 // 【追加】真・残像のマーク付与
                 if (skill.markEcho) {
                     target.data.markedBy = actor;
@@ -249,7 +255,7 @@ class BattleSystem {
             const followUp = this.executeFollowUp(actor, skill, allUnits);
             if (followUp.log) log += " " + followUp.log;
         }
-        
+
 
         return { log };
     }
@@ -337,6 +343,11 @@ class BattleSystem {
             dmg = Math.max(1, Math.floor(dmg));
             dBase.hp -= dmg;
             currentLog = `[追撃] ${target.data.name}に ${dmg} ダメージ！`;
+
+            if (dBase.hp <= 0) {
+                dBase.hp = 0;
+                currentLog += ` ${target.data.name}は倒れた！`;
+            }
         }
         console.log(currentLog)
 
