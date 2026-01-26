@@ -11,14 +11,14 @@ class BattleSystem {
 
         party.forEach(p => {
             p.currentHate = 0;
-            // 真・瞑想などの戦闘内バフをリセット
             p.battleBuffs = { pAtk: 1.0, pDef: 1.0, mAtk: 1.0, mDef: 1.0, spd: 1.0 };
             p.damageImmuneCount = 0;
-            p.nextDamageBonus = 0;
+            p.nextDamageBonus = 0; // 初期化
         });
         enemies.forEach(e => {
             e.currentHate = 0;
             e.battleBuffs = { pAtk: 1.0, pDef: 1.0, mAtk: 1.0, mDef: 1.0, spd: 1.0 };
+            e.nextDamageBonus = 0; // 敵側も初期化
         });
 
         const units = [
@@ -90,7 +90,7 @@ class BattleSystem {
             if (this.checkSkillCondition(actor, sInfo.condition || 'always', allUnits) && (sInfo.currentCoolDown || 0) <= 0) {
                 selectedSkillId = sInfo.id;
                 sInfoRef = sInfo;
-                sInfo.currentCoolDown = sData.coolTime || 0;
+                sInfo.currentCoolDown = (sData.coolTime || 0) + 1; // 実行ターンに-1されるため+1
                 break;
             }
         }
@@ -100,35 +100,30 @@ class BattleSystem {
             ? chara.getSkillEffectiveData(sInfoRef || { id: selectedSkillId })
             : this.getEnemySkillData(sInfoRef || { id: selectedSkillId });
 
-        // メイン行動の実行
         let result = this.performMove(actor, skill, allUnits);
 
         if (skill.selfDamage && skill.selfDamage > 0) {
-            const isPlayer = actor.type === 'player';
-            const chara = actor.data;
             const stats = isPlayer ? chara.stats : chara;
             const maxHp = isPlayer ? chara.currentMaxHp : (chara.maxHp || chara.hp);
 
             const selfDmg = Math.floor(maxHp * skill.selfDamage);
-            stats.hp = Math.max(1, stats.hp - selfDmg); // 1残るように設定
+            stats.hp = Math.max(1, stats.hp - selfDmg);
 
             if (result.log) {
                 result.log += ` (反動で ${selfDmg} ダメージ！)`;
             }
 
-            if (skill.berserkImmune && chara.maxHp * skill.berserkImmune <= selfDmg) {
-                chara.nextDamageBonus = (chara.nextDamageBonus || 0) + selfDmg * 0.01
+            if (skill.berserkImmune && maxHp * skill.berserkImmune <= selfDmg) {
+                chara.nextDamageBonus = (chara.nextDamageBonus || 0) + selfDmg * 0.01;
                 result.log += ` (【真・諸刃】条件通過)`;
             }
         }
 
-        // 【真・軽業】2回連続発動（CTは消費済みなのでそのまま2回目）
         if (skill.doubleRepeat) {
             let secondResult = this.performMove(actor, skill, allUnits);
             result.log += " [連続発動] " + secondResult.log;
         }
 
-        // 行動後のCT操作（真・神速）
         if (skill.instantExtraTurn && Math.random() < skill.instantExtraTurn) {
             actor.ct += this.maxCt;
             result.log += ` ${chara.name}は即再行動の機会を得た！`;
@@ -137,18 +132,20 @@ class BattleSystem {
         return result;
     }
 
-    // 実際のダメージ・回復・特殊効果処理を分離
     performMove(actor, skill, allUnits) {
         const isPlayer = actor.type === 'player';
         const chara = actor.data;
         const baseStats = isPlayer ? chara.stats : chara;
         const buffs = chara.battleBuffs || { pAtk: 1, pDef: 1, mAtk: 1, mDef: 1, spd: 1 };
+        
+        // Bonusがundefinedにならないよう確保
+        const nextBonus = chara.nextDamageBonus || 0;
 
         const aStats = {
-            pAtk: baseStats.pAtk * buffs.pAtk,
-            pDef: baseStats.pDef * buffs.pDef,
-            mAtk: baseStats.mAtk * buffs.mAtk,
-            mDef: baseStats.mDef * buffs.mDef
+            pAtk: baseStats.pAtk * (buffs.pAtk || 1),
+            pDef: baseStats.pDef * (buffs.pDef || 1),
+            mAtk: baseStats.mAtk * (buffs.mAtk || 1),
+            mDef: baseStats.mDef * (buffs.mDef || 1)
         };
 
         const target = this.selectTarget(actor, skill, allUnits);
@@ -156,14 +153,17 @@ class BattleSystem {
 
         const dBase = target.type === 'player' ? target.data.stats : target.data;
         const dBuffs = target.data.battleBuffs || { pDef: 1, mDef: 1 };
-        const dStats = { pDef: dBase.pDef * dBuffs.pDef, mDef: dBase.mDef * dBuffs.mDef };
+        const dStats = { 
+            pDef: dBase.pDef * (dBuffs.pDef || 1), 
+            mDef: dBase.mDef * (dBuffs.mDef || 1) 
+        };
 
         const currentMaxHp = isPlayer ? chara.currentMaxHp : (chara.maxHp || chara.hp);
         const targetMaxHp = target.type === 'player' ? target.data.currentMaxHp : (target.data.maxHp || target.data.hp);
 
-        let powerMult = skill.power;
+        let powerMult = skill.power || 1.0;
         if (skill.firstStrikeMul && dBase.hp >= targetMaxHp * 0.5) powerMult *= skill.firstStrikeMul;
-        if (skill.desperatePower) powerMult *= (1 + (1 - baseStats.hp / currentMaxHp) * 2);
+        if (skill.desperatePower) powerMult *= (1 + (1 - (baseStats.hp / currentMaxHp)) * 2);
 
         let log = "";
 
@@ -172,19 +172,23 @@ class BattleSystem {
             dBase.hp = Math.min(targetMaxHp, dBase.hp + healAmt);
             log = `${chara.name}の[${skill.name}]！ ${target.data.name}のHPが ${healAmt} 回復。`;
         } else {
-            let dmg = (skill.type === "physical") ? (aStats.pAtk * (powerMult + chara.nextDamageBonus) / Math.max(1, dStats.pDef)) : (aStats.mAtk * (powerMult + chara.nextDamageBonus) / Math.max(1, dStats.mDef));
+            // nextBonusを加算。計算式全体がNaNにならないようMath.max(1, ...)でガード
+            let dmg = (skill.type === "physical") 
+                ? (aStats.pAtk * (powerMult + nextBonus) / Math.max(1, dStats.pDef)) 
+                : (aStats.mAtk * (powerMult + nextBonus) / Math.max(1, dStats.mDef));
+            
             dmg = Math.floor(dmg);
-            chara.nextDamageBonus = 0;
+            chara.nextDamageBonus = 0; // ボーナス消費
 
             if (target.data.damageImmuneCount > 0) {
-                dmg = 0; target.data.damageImmuneCount--;
+                dmg = 0; 
+                target.data.damageImmuneCount--;
                 log = `${target.data.name}は攻撃を無効化した！`;
             } else {
                 dmg = Math.max(1, dmg);
                 dBase.hp -= dmg;
                 log = `${chara.name}の[${skill.name}]！ ${target.data.name}に ${dmg} のダメージ！`;
 
-                // ライフスティール（既存ロジック）と【真・吸血】
                 if (skill.lifeSteal) {
                     let steal = Math.floor(dmg * skill.lifeSteal);
                     const overflow = Math.max(0, (baseStats.hp + steal) - currentMaxHp);
@@ -196,33 +200,32 @@ class BattleSystem {
                     }
                 }
             }
-            if (skill.stunEnemy) { target.ct = Math.max(0, target.ct - 50); log += ` スタン付与！`; }
+            if (skill.stunEnemy) { 
+                target.ct = Math.max(0, target.ct - 50); 
+                log += ` スタン付与！`; 
+            }
         }
 
         if (skill.permanentGrowth) {
-            ["pAtk", "pDef", "mAtk", "mDef", "spd"].forEach(k => chara.battleBuffs[k] *= (1 + skill.permanentGrowth));
+            ["pAtk", "pDef", "mAtk", "mDef", "spd"].forEach(k => {
+                chara.battleBuffs[k] = (chara.battleBuffs[k] || 1) * (1 + skill.permanentGrowth);
+            });
         }
         if (skill.resetHate && target.type === 'player') target.data.currentHate = 0;
 
-        // 追撃判定
         const followUp = this.executeFollowUp(actor, skill, allUnits);
         if (followUp.log) log += " " + followUp.log;
 
         return { log };
     }
 
-    // battleSystem.js 内のメソッドを更新
-
     selectTarget(actor, skill, allUnits) {
         if (skill.type === "heal") {
-            // 【回復】HP割合が「最も低い」生存している味方を確実に選択
             const allyTargets = allUnits.filter(u =>
                 u.type === actor.type &&
                 (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0)
             );
-
             if (allyTargets.length === 0) return null;
-
             return allyTargets.reduce((prev, curr) => {
                 const getHpRate = (u) => {
                     const s = u.type === 'player' ? u.data.stats : u.data;
@@ -231,27 +234,19 @@ class BattleSystem {
                 };
                 return getHpRate(curr) < getHpRate(prev) ? curr : prev;
             });
-
         } else {
-            // 【攻撃】生存している敵対勢力を取得
             const enemyTargets = allUnits.filter(u =>
                 u.type !== actor.type &&
                 (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0)
             );
-
             if (enemyTargets.length === 0) return null;
-
-            // 敵がプレイヤーを狙う場合、ヘイトが「最も高い」キャラを確実に選択
             if (actor.type === 'enemy') {
                 return enemyTargets.reduce((prev, curr) => {
                     const hPrev = (prev.data.currentHate || 0);
                     const hCurr = (curr.data.currentHate || 0);
-                    // ヘイトが同じなら、配列の前方にいるキャラ（またはランダム）を優先
                     return hCurr > hPrev ? curr : prev;
                 });
             }
-
-            // プレイヤーが敵を狙う場合は、現状通り先頭またはランダム
             return enemyTargets[0];
         }
     }
@@ -270,14 +265,13 @@ class BattleSystem {
         const dBuffs = target.data.battleBuffs || { pDef: 1, mDef: 1 };
 
         let dmg = (skill.type === "physical")
-            ? (baseStats.pAtk * buffs.pAtk * skill.power / Math.max(1, dBase.pDef * dBuffs.pDef))
-            : (baseStats.mAtk * buffs.mAtk * skill.power / Math.max(1, dBase.mDef * dBuffs.mDef));
+            ? (baseStats.pAtk * (buffs.pAtk || 1) * (skill.power || 1) / Math.max(1, dBase.pDef * (dBuffs.pDef || 1)))
+            : (baseStats.mAtk * (buffs.mAtk || 1) * (skill.power || 1) / Math.max(1, dBase.mDef * (dBuffs.mDef || 1)));
 
         dmg = Math.max(1, Math.floor(dmg));
         dBase.hp -= dmg;
         let currentLog = `[追撃] ${target.data.name}に ${dmg} ダメージ！`;
 
-        // 真・追撃の連鎖
         if (skill.chainDouble) {
             const next = this.executeFollowUp(actor, skill, allUnits, chainCount + 1);
             if (next.log) currentLog += " " + next.log;
@@ -290,7 +284,7 @@ class BattleSystem {
         const level = sInfo.level || 1;
         let effective = {
             ...base,
-            power: base.power + (base.growth?.power || 0) * (level - 1),
+            power: (base.power || 1.0) + (base.growth?.power || 0) * (level - 1),
             coolTime: Math.max(0, (base.coolTime || 0) + (base.growth?.coolTime || 0) * (level - 1)),
         };
 
@@ -309,25 +303,20 @@ class BattleSystem {
         return effective;
     }
 
-    // スキルの使用条件を判定するヘルパー
     checkSkillCondition(actor, condition, allUnits) {
         const chara = actor.data;
         const isPlayer = actor.type === 'player';
-
-        // ステータスと最大HPの取得先をタイプによって切り替え
         const stats = isPlayer ? chara.stats : chara;
         const maxHp = isPlayer ? chara.currentMaxHp : (chara.maxHp || chara.hp);
-
         const hpRate = stats.hp / maxHp;
-
-        const alivePlayers = allUnits.filter(u => u.type === 'player' && u.data.stats.hp > 0);
-        const aliveEnemies = allUnits.filter(u => u.type === 'enemy' && u.data.hp > 0);
 
         switch (condition) {
             case 'hp_low': return hpRate <= 0.5;
             case 'hp_high': return hpRate > 0.5;
-            case 'enemy_many': return aliveEnemies.length >= 3;
-            case 'ally_dead': return allUnits.filter(u => u.type === 'player' && u.data.stats.hp <= 0).length > 0;
+            case 'enemy_many': 
+                return allUnits.filter(u => u.type !== actor.type && (u.type === 'player' ? u.data.stats.hp > 0 : u.data.hp > 0)).length >= 3;
+            case 'ally_dead': 
+                return allUnits.filter(u => u.type === actor.type && (u.type === 'player' ? u.data.stats.hp <= 0 : u.data.hp <= 0)).length > 0;
             case 'always': return true;
             default: return true;
         }
