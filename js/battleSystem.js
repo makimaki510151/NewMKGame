@@ -280,7 +280,7 @@ class BattleSystem {
             chance = currentChance * (skill.chainDouble || 0);
         }
 
-        if (Math.random() <= chance) {
+        if (Math.random() >= chance) {
 
             return { log: "" };
         }
