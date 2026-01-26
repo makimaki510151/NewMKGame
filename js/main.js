@@ -604,7 +604,6 @@ class GameController {
         const combineBtnText = `合成を実行 (${this.selectedFragmentIds.length}/3)`;
         const canCombine = this.selectedFragmentIds.length === 3;
 
-        // innerHTMLの初期代入
         fragSection.innerHTML = `
     <div style="margin-bottom:10px;">
         <button id="btn-combine-selected" 
@@ -616,11 +615,15 @@ class GameController {
     </div>
     `;
 
-        // --- 2. フィルタ・ソートUI (+= で追加して上書きを防ぐ) ---
+        // --- 2. フィルタ・ソートUI ---
+        // 「トリプルのみ」のチェックボックスを追加
         fragSection.innerHTML += `
     <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; border-bottom:2px solid #ccc; padding-bottom:5px; margin-bottom:5px;">
         <h4 style="margin:0;">所持中のかけら</h4>
         <div style="display:flex; gap:5px; align-items:center;">
+            <label style="font-size:0.7em; color:#fff; cursor:pointer;">
+                <input type="checkbox" id="frag-filter-triple" ${this.fragmentFilterTriple ? 'checked' : ''}> トリプルのみ
+            </label>
             <label style="font-size:0.7em; color:#fff; cursor:pointer;">
                 <input type="checkbox" id="frag-filter-locked" ${this.fragmentFilterLocked ? 'checked' : ''}> ロック中のみ
             </label>
@@ -653,6 +656,15 @@ class GameController {
 
         displayFrags = displayFrags.filter(f => !equippedIds.has(String(f.uniqueId)));
 
+        // 新しく追加：トリプルフィルター
+        if (this.fragmentFilterTriple) {
+            displayFrags = displayFrags.filter(f => {
+                const counts = {};
+                for (const e of f.effects) counts[e] = (counts[e] || 0) + 1;
+                return Object.values(counts).some(count => count >= 3);
+            });
+        }
+
         if (this.fragmentFilterLocked) displayFrags = displayFrags.filter(f => f.isLocked);
         if (this.fragmentFilterEffect !== 'all') displayFrags = displayFrags.filter(f => f.effects.includes(this.fragmentFilterEffect));
 
@@ -673,7 +685,6 @@ class GameController {
                     e.dataTransfer.setData('text/plain', frag.uniqueId);
                 };
 
-                // スタイル設定：合成選択中は黄色くハイライト
                 fDiv.style = `
                 border: ${isSelectedForCombine ? '3px solid #ffed4a' : '1px solid #eee'};
                 background: ${isSelectedForCombine ? '#fff9e6' : '#f9f9f9'};
@@ -696,7 +707,6 @@ class GameController {
                     return `<span style="color:${labelColor}; font-weight:bold;">【${info.name}】</span>${info.desc}`;
                 }).join("<br>");
 
-                // ボタンの組み立て
                 let actionButtons = `
                 <button onclick="event.stopPropagation(); gameApp.openFragmentEnhanceModal(${JSON.stringify(frag).replace(/"/g, '&quot;')})" style="font-size:0.8em;">強化</button>
                 <button onclick="event.stopPropagation(); gameApp.toggleFragmentLock('${frag.uniqueId}')" style="font-size:0.8em;">${frag.isLocked ? "解除" : "ロック"}</button>
@@ -725,6 +735,10 @@ class GameController {
         container.appendChild(fragSection);
 
         // --- 5. リスナー設定 ---
+        // トリプルフィルターのリスナー追加
+        const filterTriple = fragSection.querySelector('#frag-filter-triple');
+        if (filterTriple) filterTriple.onchange = (e) => { this.fragmentFilterTriple = e.target.checked; this.renderEquipScene(); };
+
         const filterLocked = fragSection.querySelector('#frag-filter-locked');
         if (filterLocked) filterLocked.onchange = (e) => { this.fragmentFilterLocked = e.target.checked; this.renderEquipScene(); };
 
