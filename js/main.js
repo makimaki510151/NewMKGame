@@ -435,6 +435,8 @@ class GameController {
             if (Array.isArray(chara.skills)) {
                 chara.skills.forEach((sInfo, sIndex) => {
                     const sData = chara.getSkillEffectiveData(sInfo);
+                    const mData = MASTER_DATA.SKILLS[sInfo.id]; // マスターデータを取得
+                    const skillDesc = mData?.desc || "説明はありません。";
                     const isAttack = sInfo.id === 'attack';
                     const currentCond = sInfo.condition || 'always';
 
@@ -522,7 +524,9 @@ class GameController {
                             <strong>${sData.name}</strong> 
                             <span style="font-size:0.9em;">(威力:${displayPower} / CT:${displayCT} / <span style="color:#ffcc00;">ヘイト:${displayHate}</span>)</span>
                         </div>
-                                
+                        <div style="font-size:0.85em; color:var(--gold); margin:4px 0;">
+                            ${skillDesc}
+                        </div>
                         <div style="display:flex; gap:5px; align-items:center; margin-bottom:5px;">
                             <select style="background:#333; color:#fff; border:1px solid #666; font-size:0.8em;" 
                                     onchange="gameApp.changeSkillPriority('${chara.id}', ${sIndex}, this.value)">
@@ -581,15 +585,18 @@ class GameController {
                 // データの取得
                 const sData = this.party[0].getSkillEffectiveData({ id: sId, level: lvlInt });
 
-                // ヘイト値の取得（MASTER_DATAから参照）
-                const hateVal = MASTER_DATA.SKILLS[sId]?.hate || 10;
+                // マスターデータから説明文とヘイト値の取得
+                const mData = MASTER_DATA.SKILLS[sId];
+                const skillDesc = mData?.desc || "説明はありません。";
+                const hateVal = mData?.hate || 10;
 
                 const itemDiv = document.createElement('div');
                 itemDiv.style = "border-bottom:1px solid #eee; padding:8px; font-size:0.8em; background:#f9f9f9; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; color:#000;";
 
                 itemDiv.innerHTML = `
-            <div>
+            <div style="flex: 1; padding-right: 8px;">
                 <strong>${sData.name}</strong> (Lv.${lvlInt})<br>
+                <div style="color:#2e7d32; font-size:0.9em; margin:2px 0;">${skillDesc}</div>
                 <small>威力:${(Math.floor(sData.power * 10) / 10).toFixed(1)} / CT:${(Math.floor(sData.coolTime * 10) / 10).toFixed(1)} / <span style="color:#d32f2f;">ヘイト:${hateVal}</span></small><br>
                 <small style="color:#666;">所持数: ${count}</small>
             </div>

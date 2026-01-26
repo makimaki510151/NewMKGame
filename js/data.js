@@ -3,37 +3,44 @@ const MASTER_DATA = {
         attack: {
             id: "attack", name: "通常攻撃", type: "physical", power: 1.0, coolTime: 0,
             growth: { power: 0.1 },
-            hate: 10
+            hate: 10,
+            desc: "敵単体に物理ダメージを与える。"
         },
         slash: {
             id: "slash", name: "斬撃", type: "physical", power: 1.5, coolTime: 3,
             growth: { power: 0.2 },
-            hate: 20
+            hate: 20,
+            desc: "敵単体に物理ダメージを与える。"
         },
         magic_bullet: {
             id: "magic_bullet", name: "魔力弾", type: "magical", power: 1.2, coolTime: 4,
             growth: { power: 0.15 },
-            hate: 20
+            hate: 20,
+            desc: "敵単体に魔法ダメージを与える。"
         },
         heal: {
             id: "heal", name: "回復", type: "heal", power: 0.3, coolTime: 7,
             growth: { power: 0.1, coolTime: -0.1 },
-            hate: 50
+            hate: 50,
+            desc: "味方単体のHPを回復させる。"
         },
         fire_ball: {
             id: "fire_ball", name: "火球", type: "magical", power: 1.8, coolTime: 6,
             growth: { power: 0.25 },
-            hate: 20
+            hate: 20,
+            desc: "敵単体に魔法ダメージを与える。"
         },
         shield_bash: {
             id: "shield_bash", name: "重撃", type: "physical", power: 2.5, coolTime: 7,
             growth: { power: 0.5 },
-            hate: 100
+            hate: 100,
+            desc: "敵単体に物理ダメージを与える。"
         },
         prayer: {
             id: "prayer", name: "祈り", type: "heal", power: 0.75, coolTime: 20,
             growth: { power: 0.15, coolTime: -0.2 },
-            hate: 50
+            hate: 50,
+            desc: "味方単体のHPを回復させる。"
         }
     },
     FRAGMENT_EFFECTS: {

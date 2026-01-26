@@ -364,8 +364,7 @@ class BattleSystem {
                 currentLog += ` ${target.data.name}は倒れた！`;
             }
         }
-        console.log(currentLog)
-
+        
         // chainDoubleが存在する場合、次回の判定へ
         if (skill.chainDouble) {
             const next = this.executeFollowUp(actor, skill, allUnits, chance);
