@@ -1,5 +1,5 @@
 class SkillManager {
-    constructor(savedInventory = null, savedFragments = null) {
+    constructor(savedInventory = null, savedFragments = null, savedCrystals = null) {
         // inventory[skillId][level] = count という二次元構造にします
         this.inventory = savedInventory || {
             attack: { 0: 999 },
@@ -8,6 +8,7 @@ class SkillManager {
             heal: { 0: 0 }
         };
         this.fragments = savedFragments || [];
+        this.crystals = savedCrystals || [];
         if (!this.inventory.scrap) {
             this.inventory.scrap = { count: 0 };
         }
@@ -216,5 +217,99 @@ class SkillManager {
         if (!this.fragments.some(f => String(f.uniqueId) === String(fragmentObj.uniqueId))) {
             this.fragments.push(fragmentObj);
         }
+    }
+
+    combineCrystals() {
+        let createdAny = false;
+        // 同じ効果3つが揃っている「かけら」を抽出
+        const tripleFrags = this.fragments.filter(f =>
+            f.effects.length === 3 && f.effects.every(e => e === f.effects[0])
+        );
+
+        const groups = {};
+        tripleFrags.forEach(f => {
+            const id = f.effects[0];
+            if (!groups[id]) groups[id] = [];
+            groups[id].push(f);
+        });
+
+        for (const effectId in groups) {
+            // 同じトリプルかけらが3枚以上あれば合成可能
+            while (groups[effectId].length >= 3) {
+                for (let i = 0; i < 3; i++) {
+                    const target = groups[effectId].shift();
+                    const idx = this.fragments.findIndex(f => f.uniqueId === target.uniqueId);
+                    if (idx !== -1) this.fragments.splice(idx, 1);
+                }
+
+                if (!this.crystals) this.crystals = [];
+                this.crystals.push({
+                    uniqueId: "cry_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+                    baseEffectId: effectId,
+                    name: MASTER_DATA.CRYSTALS[effectId].name
+                });
+                createdAny = true;
+            }
+        }
+        return createdAny;
+    }
+
+    // 結晶をスキルの専用スロットに装備する
+    equipCrystalToSkill(chara, skillIndex, crystalUniqueId) {
+        const crystalIdx = this.crystals.findIndex(c => c.uniqueId === crystalUniqueId);
+        if (crystalIdx === -1) return;
+
+        const crystal = this.crystals[crystalIdx];
+        const skill = chara.skills[skillIndex];
+
+        // 既に何か装備していたら在庫に戻す
+        if (skill.crystalSlot) {
+            this.crystals.push(skill.crystalSlot);
+        }
+
+        skill.crystalSlot = crystal; // 結晶専用スロット
+        this.crystals.splice(crystalIdx, 1); // 在庫から削除
+    }
+
+    combineSpecificFragments(uniqueIds) {
+        // IDから実際のかけらデータを取り出す
+        const targets = this.fragments.filter(f => uniqueIds.includes(String(f.uniqueId)));
+
+        if (targets.length !== 3) return { success: false, message: "かけらが3つ見つかりません。" };
+
+        // 「装備中」でないか再度確認（念のため）
+        // ※ GameController側でフィルタリング済みならここは簡略化可能
+
+        // 3つのかけらが共通して持っている「トリプル（同じ効果3つ）」を探す
+        // かけらA: [power, power, power] なら power が対象
+        const getTripleEffect = (frag) => {
+            const counts = {};
+            for (const e of frag.effects) counts[e] = (counts[e] || 0) + 1;
+            return Object.keys(counts).find(e => counts[e] >= 3);
+        };
+
+        const effectId1 = getTripleEffect(targets[0]);
+        const effectId2 = getTripleEffect(targets[1]);
+        const effectId3 = getTripleEffect(targets[2]);
+
+        if (!effectId1 || effectId1 !== effectId2 || effectId1 !== effectId3) {
+            return { success: false, message: "同じ効果を3つ持つ「トリプルかけら」を3つ選んでください。" };
+        }
+
+        // 合成処理：かけらを削除
+        uniqueIds.forEach(id => {
+            const idx = this.fragments.findIndex(f => String(f.uniqueId) === String(id));
+            if (idx !== -1) this.fragments.splice(idx, 1);
+        });
+
+        // 結晶を生成
+        const crystal = {
+            uniqueId: "cry_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+            baseEffectId: effectId1,
+            name: MASTER_DATA.CRYSTALS[effectId1].name
+        };
+        this.crystals.push(crystal);
+
+        return { success: true, crystalName: crystal.name };
     }
 }

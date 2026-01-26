@@ -34,6 +34,7 @@ class GameController {
         this.fragmentSortType = 'newest'; // 'default' から 'newest' に変更、または追記
         this.fragmentFilterEffect = 'all';
         this.fragmentFilterLocked = false;
+        this.selectedFragmentIds = [];
 
         this.init();
     }
@@ -73,7 +74,7 @@ class GameController {
         this.party = data.party.map(p => new Character(p.id, p.name, p));
 
         // セーブデータから在庫とかけらを復元
-        this.skillManager = new SkillManager(data.inventory, data.fragments);
+        this.skillManager = new SkillManager(data.inventory, data.fragments, data.crystals);
         this.hasJoinedBonusChara = data.hasJoinedBonusChara || false;
         this.hasJoinedKnightChara = data.hasJoinedKnightChara || false;
         this.usedCodes = data.usedCodes || [];
@@ -86,6 +87,7 @@ class GameController {
             party: this.party,
             inventory: this.skillManager.inventory,
             fragments: this.skillManager.fragments,
+            crystals: this.skillManager.crystals,
             hasJoinedBonusChara: this.hasJoinedBonusChara,
             hasJoinedKnightChara: this.hasJoinedKnightChara,
             usedCodes: this.usedCodes
@@ -179,6 +181,9 @@ class GameController {
             }
             if (cloudData.fragments) {
                 this.skillManager.fragments = cloudData.fragments;
+            }
+            if (cloudData.crystals) {
+                this.skillManager.crystals = cloudData.crystals;
             }
             this.hasJoinedBonusChara = cloudData.hasJoinedBonusChara || false;
             this.hasJoinedKnightChara = cloudData.hasJoinedKnightChara || false;
@@ -403,7 +408,8 @@ class GameController {
     renderEquipScene() {
         const partyList = document.getElementById('equip-party-list');
         const invList = document.getElementById('equip-inventory-list');
-        const fragList = document.getElementById('equip-fragment-list'); // 追加
+        const fragList = document.getElementById('equip-fragment-list');
+        const crystalList = document.getElementById('equip-crystal-list');
         if (!partyList || !invList || !fragList) return;
 
         // スクロール位置の保存（かけらリスト用）
@@ -414,7 +420,7 @@ class GameController {
         this.renderEquipPartyList(partyList);
         this.renderEquipInventory(invList); // 引数からスクロール位置を削除
         this.renderFragmentList(fragList, savedScrollTop); // かけらリストを独立して描画
-
+        this.renderCrystalList(crystalList);
     }
 
     // 左側：キャラクターと装備スキルの描画
@@ -439,14 +445,13 @@ class GameController {
                         `<option value="${cond.id}" ${currentCond === cond.id ? 'selected' : ''}>${cond.name}</option>`
                     ).join('');
 
-                    let fragmentSlotsHtml = '<div class="skill-slot-container" style="display:flex; gap:5px; margin-top:5px;">';
+                    // --- かけらスロットの生成 ---
+                    let fragmentSlotsHtml = '<div class="skill-slot-wrapper" style="display:flex; align-items:center; gap:10px; margin-top:5px;">';
+                    fragmentSlotsHtml += '<div class="fragment-slots-group" style="display:flex; gap:5px;">';
+
                     if (!sInfo.slots) sInfo.slots = [null, null, null];
-
                     sInfo.slots.forEach((slotValue, slotIdx) => {
-                        // スロットには実体（オブジェクト）が入っている
                         const fragment = slotValue;
-
-                        // 現在このスロットが「選択中」かどうかを判定
                         const isSlotSelected = this.selectedSlot &&
                             String(this.selectedSlot.charaId) === String(chara.id) &&
                             this.selectedSlot.skillIndex === sIndex &&
@@ -454,12 +459,9 @@ class GameController {
 
                         const filledClass = fragment ? 'filled' : '';
                         const label = fragment ? '★' : '+';
-
-                        // スタイル：選択中は青、それ以外は中身の有無で色分け
                         const slotBg = isSlotSelected ? '#4a9eff' : (fragment ? '#ffed4a' : '#fff');
                         const borderStyle = isSlotSelected ? '2px solid #fff' : '1px dashed #666';
 
-                        // ツールチップの内容
                         let detailText = "空きスロット";
                         if (fragment && fragment.effects) {
                             detailText = fragment.effects.map(e => {
@@ -468,36 +470,56 @@ class GameController {
                             }).join('\n\n');
                         }
 
-                        // クリック時のアクションを「スロット選択メソッド」に変更
-                        const clickAction = `gameApp.selectFragmentSlot('${chara.id}', ${sIndex}, ${slotIdx})`;
-
                         fragmentSlotsHtml += `
-        <div class="fragment-slot ${filledClass} tooltip" 
-             style="width:24px; height:24px; border:${borderStyle}; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; background:${slotBg}; color:#000; box-shadow:${isSlotSelected ? '0 0 8px #4a9eff' : 'none'};"
-             onclick="event.stopPropagation(); ${clickAction}"
-             ondragover="event.preventDefault();"
-             ondrop="gameApp.handleDropFragment(event, '${chara.id}', ${sIndex}, ${slotIdx})">
-            ${label}
-            <span class="tooltip-text">${detailText}
-                ${fragment ? '<br>(クリックで選択/外す)' : (isSlotSelected ? '<br><br>(選択解除)' : '<br><br>(クリックで選択)')}
-            </span>
-        </div>`;
+                        <div class="fragment-slot ${filledClass} tooltip" 
+                             style="width:24px; height:24px; border:${borderStyle}; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; background:${slotBg}; color:#000; box-shadow:${isSlotSelected ? '0 0 8px #4a9eff' : 'none'};"
+                             onclick="event.stopPropagation(); gameApp.selectFragmentSlot('${chara.id}', ${sIndex}, ${slotIdx})">
+                            ${label}
+                            <span class="tooltip-text">${detailText}<br>(クリックで選択/外す)</span>
+                        </div>`;
                     });
-                    fragmentSlotsHtml += '</div>';
+                    fragmentSlotsHtml += '</div>'; // group end
+
+                    // --- 結晶スロットの生成 (ここを追加) ---
+                    const crystal = sInfo.crystalSlot; // スキルに紐付いた結晶データ
+                    const isCrystalSelected = this.selectedCrystalSlot &&
+                        this.selectedCrystalSlot.charaId === chara.id &&
+                        this.selectedCrystalSlot.skillIndex === sIndex;
+
+                    const crystalLabel = crystal ? '◆' : '◇';
+                    const crystalBg = isCrystalSelected ? '#4a9eff' : (crystal ? '#b366ff' : '#333');
+                    const crystalBorder = isCrystalSelected ? '2px solid #fff' : '2px solid #b366ff';
+
+                    let crystalDetail = "結晶スロット (未装備)";
+                    if (crystal) {
+                        const cInfo = MASTER_DATA.CRYSTALS[crystal.baseEffectId];
+                        crystalDetail = `【${cInfo.name}】\n${cInfo.desc}`;
+                    }
+
+                    fragmentSlotsHtml += `
+                    <div style="border-left: 1px solid #555; height: 20px; margin: 0 5px;"></div>
+                    <div class="crystal-slot tooltip" 
+                         style="width:28px; height:28px; border:${crystalBorder}; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; background:${crystalBg}; color:#fff; border-radius:4px;"
+                         onclick="event.stopPropagation(); ${crystal ? `gameApp.unequipCrystal('${chara.id}', ${sIndex})` : `gameApp.selectCrystalSlot('${chara.id}', ${sIndex})`}">
+                        ${crystalLabel}
+                        <span class="tooltip-text">${crystalDetail}<br>(クリックで結晶を装備/外す)</span>
+                    </div>`;
+
+                    fragmentSlotsHtml += '</div>'; // wrapper end
 
                     skillSlotsHtml += `
-            <div class="skill-slot-item" style="border-bottom:1px solid #444; margin-bottom:5px; padding:5px; font-size:0.85em;">
-                <strong>${sData.name}</strong> (威力:${displayPower} / CT:${displayCT} / <span style="color:#ffcc00;">ヘイト:${displayHate}</span>)<br>
-                <select onchange="gameApp.changeSkillCondition('${chara.id}', ${sIndex}, this.value)">${options}</select>
-                ${!isAttack ? `<button onclick="gameApp.unequipSkill('${chara.id}', ${sIndex})">外す</button>` : '<small> (固定)</small>'}
-                ${fragmentSlotsHtml}
-            </div>`;
+                    <div class="skill-slot-item" style="border-bottom:1px solid #444; margin-bottom:5px; padding:5px; font-size:0.85em;">
+                        <strong>${sData.name}</strong> (威力:${displayPower} / CT:${displayCT} / <span style="color:#ffcc00;">ヘイト:${displayHate}</span>)<br>
+                        <select onchange="gameApp.changeSkillCondition('${chara.id}', ${sIndex}, this.value)">${options}</select>
+                        ${!isAttack ? `<button onclick="gameApp.unequipSkill('${chara.id}', ${sIndex})">外す</button>` : '<small> (固定)</small>'}
+                        ${fragmentSlotsHtml}
+                    </div>`;
                 });
             }
 
             div.innerHTML = `<div><strong>${isSelected ? '▶ ' : ''}${chara.name}</strong></div>${skillSlotsHtml}`;
             div.onclick = (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.classList.contains('fragment-slot')) return;
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.closest('.fragment-slot') || e.target.closest('.crystal-slot')) return;
                 this.selectedCharaId = chara.id;
                 this.renderEquipScene();
             };
@@ -576,8 +598,24 @@ class GameController {
         const fragSection = document.createElement('div');
         fragSection.style.marginTop = "0px";
 
-        // フィルタ・ソートUI
+        // --- 1. 合成実行ボタンエリア ---
+        const combineBtnText = `合成を実行 (${this.selectedFragmentIds.length}/3)`;
+        const canCombine = this.selectedFragmentIds.length === 3;
+
+        // innerHTMLの初期代入
         fragSection.innerHTML = `
+    <div style="margin-bottom:10px;">
+        <button id="btn-combine-selected" 
+            style="width:100%; padding:12px; background:${canCombine ? '#ffed4a' : '#444'}; 
+            color:${canCombine ? '#000' : '#888'}; font-weight:bold; border:none; border-radius:4px; cursor:pointer;"
+            onclick="gameApp.combineSelectedFragments()">
+            ${combineBtnText}
+        </button>
+    </div>
+    `;
+
+        // --- 2. フィルタ・ソートUI (+= で追加して上書きを防ぐ) ---
+        fragSection.innerHTML += `
     <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; border-bottom:2px solid #ccc; padding-bottom:5px; margin-bottom:5px;">
         <h4 style="margin:0;">所持中のかけら</h4>
         <div style="display:flex; gap:5px; align-items:center;">
@@ -607,81 +645,75 @@ class GameController {
         scrollBox.className = "fragment-scroll-container";
         scrollBox.style = "height:400px; overflow-y:auto; border:1px solid #eee; background:#fff; border-radius:4px;";
 
-        // フィルタリングとソート
+        // --- 3. フィルタリングとソート ---
         const equippedIds = this.getAllEquippedFragmentIds();
         let displayFrags = [...this.skillManager.fragments];
 
-        // 1. 装備済み除外
         displayFrags = displayFrags.filter(f => !equippedIds.has(String(f.uniqueId)));
 
-        // 2. フィルタ
         if (this.fragmentFilterLocked) displayFrags = displayFrags.filter(f => f.isLocked);
         if (this.fragmentFilterEffect !== 'all') displayFrags = displayFrags.filter(f => f.effects.includes(this.fragmentFilterEffect));
 
-        // 3. ソート
         if (this.fragmentSortType === 'effect_count_desc') displayFrags.sort((a, b) => b.effects.length - a.effects.length);
         else if (this.fragmentSortType === 'effect_count_asc') displayFrags.sort((a, b) => a.effects.length - b.effects.length);
         else if (this.fragmentSortType === 'newest') displayFrags.sort((a, b) => b.uniqueId - a.uniqueId);
 
+        // --- 4. かけらリストの描画 ---
         if (displayFrags.length === 0) {
             scrollBox.innerHTML = `<div style="font-size:0.8em; color:#999; padding:10px; text-align:center;">該当するかけらはありません</div>`;
         } else {
             displayFrags.forEach(frag => {
+                const isSelectedForCombine = this.selectedFragmentIds.includes(String(frag.uniqueId));
                 const fDiv = document.createElement('div');
                 fDiv.draggable = true;
 
-                // ドラッグ開始時の処理（D&D用）
                 fDiv.ondragstart = (e) => {
                     e.dataTransfer.setData('text/plain', frag.uniqueId);
                 };
 
-                // スタイル設定：スロット選択中はクリックしやすく強調
-                const isSelectedMode = !!this.selectedSlot;
+                // スタイル設定：合成選択中は黄色くハイライト
                 fDiv.style = `
-        border: ${isSelectedMode ? '2px solid #4a9eff' : '1px solid #eee'};
-        padding: 8px;
-        font-size: 0.8em;
-        background: #f9f9f9;
-        margin-bottom: 4px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        color: #000;
-        cursor: ${isSelectedMode ? 'pointer' : 'grab'};
-    `;
+                border: ${isSelectedForCombine ? '3px solid #ffed4a' : '1px solid #eee'};
+                background: ${isSelectedForCombine ? '#fff9e6' : '#f9f9f9'};
+                padding: 8px; font-size: 0.8em; margin-bottom: 4px; display: flex; 
+                justify-content: space-between; align-items: center; color: #000; cursor: pointer;
+            `;
 
-                // スロット選択中なら、カード自体をクリックしても「はめる」動作にする
-                if (isSelectedMode) {
-                    fDiv.onclick = () => this.attachFragmentToSelectedSlot(frag.uniqueId);
-                }
+                fDiv.onclick = () => {
+                    if (this.selectedSlot) {
+                        this.attachFragmentToSelectedSlot(frag.uniqueId);
+                    } else {
+                        this.toggleFragmentSelection(String(frag.uniqueId));
+                    }
+                };
 
                 const effectDetails = frag.effects.map(e => {
                     const info = MASTER_DATA.FRAGMENT_EFFECTS[e];
-                    return `<span style="color:#d32f2f; font-weight:bold;">【${info.name}】</span>${info.desc}`;
+                    const isFiltered = this.fragmentFilterEffect === e;
+                    const labelColor = isFiltered ? '#00b7ff' : '#d32f2f';
+                    return `<span style="color:${labelColor}; font-weight:bold;">【${info.name}】</span>${info.desc}`;
                 }).join("<br>");
 
                 // ボタンの組み立て
                 let actionButtons = `
-        <button onclick="event.stopPropagation(); gameApp.openFragmentEnhanceModal(${JSON.stringify(frag).replace(/"/g, '&quot;')})" style="font-size:0.8em;">強化</button>
-        <button onclick="event.stopPropagation(); gameApp.toggleFragmentLock('${frag.uniqueId}')" style="font-size:0.8em;">${frag.isLocked ? "解除" : "ロック"}</button>
-    `;
+                <button onclick="event.stopPropagation(); gameApp.openFragmentEnhanceModal(${JSON.stringify(frag).replace(/"/g, '&quot;')})" style="font-size:0.8em;">強化</button>
+                <button onclick="event.stopPropagation(); gameApp.toggleFragmentLock('${frag.uniqueId}')" style="font-size:0.8em;">${frag.isLocked ? "解除" : "ロック"}</button>
+            `;
 
                 if (this.selectedSlot) {
-                    // スロット選択時：一番上に「はめる」ボタンを表示
                     actionButtons = `<button onclick="event.stopPropagation(); gameApp.attachFragmentToSelectedSlot('${frag.uniqueId}')" style="font-size:0.8em; background:#4a9eff; color:#fff; font-weight:bold;">はめる</button>` + actionButtons;
                 } else {
-                    // 通常時：削除ボタンを表示
                     actionButtons += `<button onclick="event.stopPropagation(); gameApp.deleteFragment('${frag.uniqueId}')" style="font-size:0.8em; background:${frag.isLocked ? '#ccc' : '#ffcccc'}; color:${frag.isLocked ? '#888' : '#000'};" ${frag.isLocked ? 'disabled' : ''}>削除</button>`;
                 }
 
                 fDiv.innerHTML = `
-        <div style="flex:1;">
-            <strong>輝きのかけら ${frag.isLocked ? '🔒' : ''}</strong><br>
-            ${effectDetails}
-        </div>
-        <div style="display:flex; flex-direction:column; gap:4px; min-width:60px;">
-            ${actionButtons}
-        </div>`;
+            <div style="flex:1;">
+                <strong>輝きのかけら ${frag.isLocked ? '🔒' : ''}</strong><br>
+                ${effectDetails}
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px; min-width:60px;">
+                ${actionButtons}
+            </div>`;
 
                 scrollBox.appendChild(fDiv);
             });
@@ -690,12 +722,18 @@ class GameController {
         fragSection.appendChild(scrollBox);
         container.appendChild(fragSection);
 
-        // リスナー設定
-        fragSection.querySelector('#frag-filter-locked').onchange = (e) => { this.fragmentFilterLocked = e.target.checked; this.renderEquipScene(); };
-        fragSection.querySelector('#frag-filter-select').onchange = (e) => { this.fragmentFilterEffect = e.target.value; this.renderEquipScene(); };
-        fragSection.querySelector('#frag-sort-select').onchange = (e) => { this.fragmentSortType = e.target.value; this.renderEquipScene(); };
+        // --- 5. リスナー設定 ---
+        const filterLocked = fragSection.querySelector('#frag-filter-locked');
+        if (filterLocked) filterLocked.onchange = (e) => { this.fragmentFilterLocked = e.target.checked; this.renderEquipScene(); };
 
-        fragSection.querySelector('#btn-bulk-12').onclick = () => {
+        const filterSelect = fragSection.querySelector('#frag-filter-select');
+        if (filterSelect) filterSelect.onchange = (e) => { this.fragmentFilterEffect = e.target.value; this.renderEquipScene(); };
+
+        const sortSelect = fragSection.querySelector('#frag-sort-select');
+        if (sortSelect) sortSelect.onchange = (e) => { this.fragmentSortType = e.target.value; this.renderEquipScene(); };
+
+        const bulk12 = fragSection.querySelector('#btn-bulk-12');
+        if (bulk12) bulk12.onclick = () => {
             if (confirm('ロックされていない「効果数1〜2」のかけらをすべて処分しますか？')) {
                 const count = this.skillManager.bulkDeleteFragments('count12');
                 alert(`${count}個を処分しました。`);
@@ -703,7 +741,9 @@ class GameController {
                 this.saveGame();
             }
         };
-        fragSection.querySelector('#btn-bulk-unique3').onclick = () => {
+
+        const bulkUnique3 = fragSection.querySelector('#btn-bulk-unique3');
+        if (bulkUnique3) bulkUnique3.onclick = () => {
             if (confirm('ロックされていない「効果3つがすべて異なる」かけらをすべて処分しますか？')) {
                 const count = this.skillManager.bulkDeleteFragments('unique3');
                 alert(`${count}個を処分しました。`);
@@ -715,6 +755,144 @@ class GameController {
         requestAnimationFrame(() => {
             scrollBox.scrollTop = savedScrollTop;
         });
+    }
+
+    // 結晶リストの描画
+    renderCrystalList(container) {
+        container.innerHTML = '<h3>所持中の輝きの結晶</h3>';
+
+        // 合成ボタンエリア（既存のUIマナーに合わせる）
+        const actionArea = document.createElement('div');
+        actionArea.style.marginBottom = "15px";
+        container.appendChild(actionArea);
+
+        // リストコンテナ（inventory-gridを使用）
+        const scrollBox = document.createElement('div');
+        scrollBox.className = "inventory-grid";
+
+        if (!this.skillManager.crystals || this.skillManager.crystals.length === 0) {
+            scrollBox.innerHTML = '<div style="color:var(--text-sub); font-size:0.9em; padding:10px;">所持している結晶はありません</div>';
+        }
+
+        this.skillManager.crystals.forEach(cry => {
+            const info = MASTER_DATA.CRYSTALS[cry.baseEffectId];
+            const div = document.createElement('div');
+            div.className = "fragment-item tooltip crystal-item-card";
+
+            div.innerHTML = `
+            <div class="fragment-icon" style="color:#b366ff;">◆</div>
+            <div class="fragment-info">
+                <div class="fragment-name" style="color:#e0b3ff;">${info.name}</div>
+                <div class="fragment-effects">${info.desc}</div>
+            </div>
+            <span class="tooltip-text">${info.desc}</span>
+        `;
+
+            div.onclick = () => this.handleCrystalClick(cry.uniqueId);
+            scrollBox.appendChild(div);
+        });
+
+        container.appendChild(scrollBox);
+    }
+
+    // 選択状態を切り替えるメソッド
+    toggleFragmentSelection(uniqueId) {
+        if (!this.selectedFragmentIds) this.selectedFragmentIds = [];
+
+        const idStr = String(uniqueId);
+        const index = this.selectedFragmentIds.indexOf(idStr);
+
+        if (index > -1) {
+            this.selectedFragmentIds.splice(index, 1);
+        } else {
+            if (this.selectedFragmentIds.length >= 3) return;
+            this.selectedFragmentIds.push(idStr);
+        }
+
+        // 直接 renderFragmentList を呼ぶのではなく、
+        // シーン全体の描画を呼ぶことでコンテナの未定義エラーを防ぎます
+        this.renderEquipScene();
+    }
+
+    // 合成を実行するメソッド
+    combineSelectedFragments() {
+        if (!this.selectedFragmentIds || this.selectedFragmentIds.length !== 3) {
+            alert("合成にはかけらが3つ必要です。");
+            return;
+        }
+
+        const result = this.skillManager.combineSpecificFragments(this.selectedFragmentIds);
+        if (result.success) {
+            alert(result.crystalName + " が完成しました！");
+            this.selectedFragmentIds = []; // 選択をリセット
+            this.saveGame();
+            this.renderEquipScene();
+        } else {
+            alert(result.message);
+        }
+    }
+
+    selectCrystalSlot(charaId, skillIndex) {
+        // 既に選択されていたら解除
+        if (this.selectedCrystalSlot &&
+            this.selectedCrystalSlot.charaId === charaId &&
+            this.selectedCrystalSlot.skillIndex === skillIndex) {
+            this.selectedCrystalSlot = null;
+        } else {
+            // スロットを選択状態にする（かけらの選択は解除）
+            this.selectedCrystalSlot = { charaId, skillIndex };
+            this.selectedSlot = null;
+            this.selectedFragmentId = null;
+            this.selectedCrystalId = null;
+        }
+        this.renderEquipScene();
+    }
+
+    // 結晶リスト内のアイテムをクリックした時
+    handleCrystalClick(crystalUniqueId) {
+        if (!this.selectedCrystalSlot) {
+            alert("先にスキルの結晶枠（◆）を選択してください。");
+            return;
+        }
+
+        const { charaId, skillIndex } = this.selectedCrystalSlot;
+        const chara = this.party.find(c => String(c.id) === String(charaId));
+        const skill = chara.skills[skillIndex];
+
+        // 装備処理
+        const cryIdx = this.skillManager.crystals.findIndex(c => c.uniqueId === crystalUniqueId);
+        if (cryIdx !== -1) {
+            // 既に装備があれば戻す
+            if (skill.crystalSlot) {
+                this.skillManager.crystals.push(skill.crystalSlot);
+            }
+            const crystal = this.skillManager.crystals.splice(cryIdx, 1)[0];
+            skill.crystalSlot = crystal;
+
+            // 装備完了したら選択を解除
+            this.selectedCrystalSlot = null;
+            this.renderEquipScene();
+            this.saveGame();
+        }
+    }
+
+    unequipCrystal(charaId, skillIndex) {
+        const chara = this.party.find(c => String(c.id) === String(charaId));
+        if (!chara || !chara.skills[skillIndex]) return;
+
+        const skillInfo = chara.skills[skillIndex];
+        if (skillInfo.crystalSlot) {
+            // スキルから結晶を取り出す
+            const crystal = skillInfo.crystalSlot;
+            skillInfo.crystalSlot = null;
+
+            // インベントリ（skillManager）に結晶を戻す
+            this.skillManager.crystals.push(crystal);
+
+            alert("結晶を外しました。");
+            this.renderEquipScene();
+            this.saveGame();
+        }
     }
 
     /**

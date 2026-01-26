@@ -52,6 +52,22 @@ const MASTER_DATA = {
         stealth: { name: "隠密", desc: "ヘイト上昇量-50%", calc: (s) => { s.hateMod *= 0.5; } },
         calm: { name: "鎮静", desc: "ターゲットヘイト-20", calc: (s) => { s.hateReduce += 20; } }
     },
+    CRYSTALS: {
+        power_up: { name: "真・強打", desc: "対象HP100%で威力5倍", crystalCalc: (s) => { s.firstStrikeMul = 5.0; } },
+        ct_down: { name: "真・神速", desc: "20%で即再行動", crystalCalc: (s) => { s.instantExtraTurn = 0.2; } },
+        life_steal: { name: "真・吸血", desc: "超過回復を次威力に加算", crystalCalc: (s) => { s.overflowLifeSteal = true; } },
+        double_cast: { name: "真・追撃", desc: "追撃が連鎖する(減衰90%)", crystalCalc: (s) => { s.chainDouble = 0.9; } },
+        berserk: { name: "真・諸刃", desc: "HP1になるが3回無効化", crystalCalc: (s) => { s.berserkImmune = 3; } },
+        heavy: { name: "真・鈍重", desc: "威力+30%/CT+50%/敵をスタン", crystalCalc: (s) => { s.power *= 1.3; s.coolTime *= 1.5; s.stunEnemy = true; } },
+        meditation: { name: "真・瞑想", desc: "威力-20%/全ステ永続3%UP", crystalCalc: (s) => { s.power *= 0.8; s.permanentGrowth = 0.03; } },
+        quick_step: { name: "真・軽業", desc: "2回連続発動/CT通常", crystalCalc: (s) => { s.doubleRepeat = true; } },
+        echo: { name: "真・残像", desc: "味方の攻撃に100%追撃", crystalCalc: (s) => { s.markEcho = true; } },
+        dexterous: { name: "真・器用", desc: "有利な属性でダメージ計算", crystalCalc: (s) => { s.autoAttribute = true; } },
+        madness: { name: "真・狂気", desc: "低HPほど威力指数UP", crystalCalc: (s) => { s.desperatePower = true; } },
+        provoke: { name: "真・挑発", desc: "敵の攻撃を10回引き受ける", crystalCalc: (s) => { s.absoluteTaunt = 10; } },
+        stealth: { name: "真・隠密", desc: "10回行動の間ヘイト上昇0", crystalCalc: (s) => { s.zeroHateAction = 10; } },
+        calm: { name: "真・鎮静", desc: "敵ヘイトリセット/攻撃50%化", crystalCalc: (s) => { s.resetHate = true; s.weakenEnemy = 3; } }
+    },
     SKILL_CONDITIONS: [
         { id: "always", name: "常に使う" },
         { id: "hp_low", name: "HP50%以下で使う" },
@@ -283,9 +299,34 @@ MASTER_DATA.JOBS = {
 };
 
 MASTER_DATA.SECRET_CODES = {
-    "贈り物": {
+    "筋肉の巻物・上": {
         type: "fragment",
-        effects: ["power_up", "double_cast"],
+        effects: ["power_up", "power_up", "power_up"],
+        message: "特別な輝きのかけらを手に入れた！"
+    },
+    "筋肉の巻物・中": {
+        type: "fragment",
+        effects: ["power_up", "power_up", "power_up"],
+        message: "特別な輝きのかけらを手に入れた！"
+    },
+    "筋肉の巻物・下": {
+        type: "fragment",
+        effects: ["power_up", "power_up", "power_up"],
+        message: "特別な輝きのかけらを手に入れた！"
+    },
+    "始祖の巻物・上": {
+        type: "fragment",
+        effects: ["life_steal", "life_steal", "life_steal"],
+        message: "特別な輝きのかけらを手に入れた！"
+    },
+    "始祖の巻物・中": {
+        type: "fragment",
+        effects: ["life_steal", "life_steal", "life_steal"],
+        message: "特別な輝きのかけらを手に入れた！"
+    },
+    "始祖の巻物・下": {
+        type: "fragment",
+        effects: ["life_steal", "life_steal", "life_steal"],
         message: "特別な輝きのかけらを手に入れた！"
     },
     "奥義": {
