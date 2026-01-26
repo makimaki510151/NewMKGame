@@ -334,6 +334,21 @@ MASTER_DATA.SECRET_CODES = {
         effects: ["life_steal", "life_steal", "life_steal"],
         message: "特別な輝きのかけらを手に入れた！"
     },
+    "チャラ男の巻物・上": {
+        type: "fragment",
+        effects: ["quick_step", "quick_step", "quick_step"],
+        message: "特別な輝きのかけらを手に入れた！"
+    },
+    "チャラ男の巻物・中": {
+        type: "fragment",
+        effects: ["quick_step", "quick_step", "quick_step"],
+        message: "特別な輝きのかけらを手に入れた！"
+    },
+    "チャラ男の巻物・下": {
+        type: "fragment",
+        effects: ["quick_step", "quick_step", "quick_step"],
+        message: "特別な輝きのかけらを手に入れた！"
+    },
     "奥義": {
         type: "skill",
         skillId: "slash",
