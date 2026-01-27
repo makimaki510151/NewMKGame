@@ -64,7 +64,7 @@ const MASTER_DATA = {
         ct_down: { name: "真・神速", desc: "40%で即再行動", crystalCalc: (s) => { s.instantExtraTurn = 0.4; } },
         life_steal: { name: "真・吸血", desc: "吸血超過回復を次威力に加算", crystalCalc: (s) => { s.overflowLifeSteal = true; } },
         double_cast: { name: "真・追撃", desc: "追撃が連鎖する(減衰90%)", crystalCalc: (s) => { s.chainDouble = 0.9; } },
-        berserk: { name: "真・諸刃", desc: "自傷ダメージを1度に最大体力の30%受けると自傷の1%分、次行動の威力に加算する", crystalCalc: (s) => { s.berserkImmune = 0.3; } },
+        berserk: { name: "真・諸刃", desc: "自傷ダメージを1度に最大体力の30%受けると、自傷の1%分次攻撃行動の威力に加算する", crystalCalc: (s) => { s.berserkImmune = 0.3; } },
         heavy: { name: "真・鈍重", desc: "威力+30%/CT+50%/敵をスタン", crystalCalc: (s) => { s.power *= 1.3; s.coolTime *= 1.5; s.stunEnemy = true; } },
         meditation: { name: "真・瞑想", desc: "威力-20%/全ステ永続1%UP", crystalCalc: (s) => { s.power *= 0.8; s.permanentGrowth = 0.01; } },
         quick_step: { name: "真・軽業", desc: "該当スキルを2回連続発動", crystalCalc: (s) => { s.doubleRepeat = true; } },
