@@ -451,7 +451,7 @@ class GameController {
                     ).join('');
 
                     let priorityOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(p =>
-                        `<option value="${p}" ${currentPriority == p ? 'selected' : ''}>${p}${p == 1 ? "優" : p == 9 ? "後" : ""}</option>`
+                        `<option value="${p}" ${currentPriority == p ? 'selected' : ''}>${p}${p == 1 ? "頻" : p == 9 ? "稀" : ""}</option>`
                     ).join('');
 
                     // --- かけらスロットの生成 ---
