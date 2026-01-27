@@ -126,7 +126,7 @@ class BattleSystem {
 
             selectedSkillId = sInfo.id;
             sInfoRef = sInfo;
-            sInfo.currentCoolDown = (sData.coolTime || 0) + 1; // 実行ターンに-1されるため+1
+            sInfo.currentCoolDown = (Math.ceil(sData.coolTime) || 0) + 1; // 実行ターンに-1されるため+1
         }
 
         // 3. 全スキルのCTを減少させる（既存の処理を維持）

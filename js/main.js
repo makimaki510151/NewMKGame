@@ -11,6 +11,7 @@ class GameController {
         // 1. まず各マネージャーのインスタンスを作成（空の状態でよい）
         this.skillManager = new SkillManager();
         this.battleSystem = new BattleSystem();
+        this.keepFragments = [null, null, null, null, null, null];
         this.hasJoinedBonusChara = false;
         this.hasJoinedKnightChara = false;
 
@@ -75,6 +76,12 @@ class GameController {
 
         // セーブデータから在庫とかけらを復元
         this.skillManager = new SkillManager(data.inventory, data.fragments, data.crystals);
+        let loadedKeep = data.keepFragments || [];
+        while (loadedKeep.length < 6) {
+            loadedKeep.push(null);
+        }
+        // もし 6 つより多いデータが混入していた場合に備えて 6 つに切り取るなら以下も追加
+        this.keepFragments = loadedKeep.slice(0, 6);
         this.hasJoinedBonusChara = data.hasJoinedBonusChara || false;
         this.hasJoinedKnightChara = data.hasJoinedKnightChara || false;
         this.usedCodes = data.usedCodes || [];
@@ -88,6 +95,7 @@ class GameController {
             inventory: this.skillManager.inventory,
             fragments: this.skillManager.fragments,
             crystals: this.skillManager.crystals,
+            keepFragments: this.keepFragments,
             hasJoinedBonusChara: this.hasJoinedBonusChara,
             hasJoinedKnightChara: this.hasJoinedKnightChara,
             usedCodes: this.usedCodes
@@ -175,6 +183,14 @@ class GameController {
 
             if (cloudData.party) {
                 this.party = cloudData.party.map(d => new Character(d.id, d.name, d));
+            }
+            if (cloudData.keepFragments) {
+                let loadedKeep = cloudData.keepFragments || [];
+                while (loadedKeep.length < 6) {
+                    loadedKeep.push(null);
+                }
+                // もし 6 つより多いデータが混入していた場合に備えて 6 つに切り取るなら以下も追加
+                this.keepFragments = loadedKeep.slice(0, 6);
             }
             if (cloudData.inventory) {
                 this.skillManager.inventory = cloudData.inventory;
@@ -480,7 +496,10 @@ class GameController {
                         }
 
                         fragmentSlotsHtml += `
-                        <div class="fragment-slot ${filledClass} tooltip" 
+                            <div class="fragment-slot ${filledClass} tooltip" 
+                                draggable="${fragment ? 'true' : 'false'}"
+                                onpointerdown="if(this.draggable) event.stopPropagation();" 
+                                ondragstart='event.dataTransfer.setData("text/plain", JSON.stringify({source:"slot", charaId:"${chara.id}", skillIndex:${sIndex}, slotIndex:${slotIdx}}))'
                                 style="width:24px; height:24px; border:${borderStyle}; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; background:${slotBg}; color:#000; box-shadow:${isSlotSelected ? '0 0 8px #4a9eff' : 'none'};"
                                 onclick="event.stopPropagation(); gameApp.selectFragmentSlot('${chara.id}', ${sIndex}, ${slotIdx})"
                                 ondragover="event.preventDefault();"
@@ -557,11 +576,72 @@ class GameController {
         const savedScrollTop = container.scrollTop;
         container.innerHTML = '<h3>所持スキル・合成</h3>';
 
-        // 屑の表示
-        const scrapDisplay = document.createElement('div');
-        scrapDisplay.style = "background:#2a2a36; color:#fff; padding:10px; border-radius:8px; margin-bottom:10px; text-align:center; border:1px solid var(--accent);";
-        scrapDisplay.innerHTML = `✨ かけらの屑: <strong>${this.skillManager.scrapCount}</strong>`;
-        container.appendChild(scrapDisplay);
+        const keepArea = document.createElement('div');
+        keepArea.style = "background:var(--card-bg); padding:10px; border-radius:var(--radius-small); margin: 15px 0; border:1px dashed var(--accent);";
+        keepArea.innerHTML = '<div style="font-size:0.75rem; color:var(--text-sub); margin-bottom:8px; text-align:center;">輝きのかけらキープ (最大6つ / D&D対応)</div>';
+
+        const slotsContainer = document.createElement('div');
+        // gapを調整して6つ並びやすくします
+        slotsContainer.style = "display:flex; gap:6px; justify-content:center; flex-wrap:wrap;";
+
+        // constructor等で this.keepFragments = Array(6).fill(null) となっている想定
+        this.keepFragments.forEach((frag, idx) => {
+            const slot = document.createElement('div');
+            // サイズを約半分(18~20px)に調整
+            const size = "30px";
+            const isFilled = frag !== null;
+
+            // クラスに tooltip を追加
+            slot.className = `fragment-slot ${isFilled ? 'filled tooltip' : ''}`;
+            slot.style = `width:${size}; height:${size}; border:1px solid ${isFilled ? 'var(--gold)' : '#444'}; background:${isFilled ? '#fff' : 'transparent'}; display:flex; align-items:center; justify-content:center; border-radius:4px; cursor:pointer; position:relative; font-size:10px;`;
+
+            if (isFilled) {
+                slot.innerHTML = '<span style="color:#000; font-weight:bold;">★</span>';
+
+                // ツールチップの内容を作成
+                const effectsText = frag.effects.map(e => {
+                    const info = MASTER_DATA.FRAGMENT_EFFECTS[e];
+                    // infoが存在する場合は【名前】説明、存在しない場合はIDを返す
+                    return info ? `【${info.name}】${info.desc}` : e;
+                }).join('\n\n');
+                const tooltipSpan = document.createElement('span');
+                tooltipSpan.className = 'tooltip-text';
+                tooltipSpan.innerHTML = `${effectsText}<br>(クリックで解除 / ドラッグで装着)`;
+                slot.appendChild(tooltipSpan);
+
+                slot.draggable = true;
+                slot.ondragstart = (e) => {
+                    const dragData = { type: 'fromKeep', keepIndex: idx, fragment: frag };
+                    e.dataTransfer.setData("text/plain", JSON.stringify(dragData));
+                };
+
+                slot.onclick = () => {
+                    this.skillManager.fragments.push(this.keepFragments[idx]);
+                    this.keepFragments[idx] = null;
+                    this.renderEquipScene();
+                    this.saveGame();
+                };
+            } else {
+                slot.innerHTML = '<span style="color:#444;">+</span>';
+            }
+
+            // ドロップ受付
+            slot.ondragover = (e) => e.preventDefault();
+            slot.ondrop = (e) => {
+                e.preventDefault();
+                const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+
+                if (data.source === 'list') {
+                    this.moveListToKeep(data.uniqueId, idx); // リスト → キープ (2)
+                } else if (data.source === 'slot') {
+                    this.moveSlotToKeep(data.charaId, data.skillIndex, data.slotIndex, idx); // スロット → キープ (4)
+                }
+            };
+            slotsContainer.appendChild(slot);
+        });
+
+        keepArea.appendChild(slotsContainer);
+        container.appendChild(keepArea);
 
         // 一括合成ボタン
         const allCombineBtn = document.createElement('button');
@@ -625,6 +705,13 @@ class GameController {
 
         const fragSection = document.createElement('div');
         fragSection.style.marginTop = "0px";
+
+        // 屑の表示
+        const scrapDisplay = document.createElement('div');
+        scrapDisplay.style = "background:#2a2a36; color:#fff; padding:10px; border-radius:8px; margin-bottom:10px; text-align:center; border:1px solid var(--accent);";
+        scrapDisplay.innerHTML = `✨ かけらの屑: <strong>${this.skillManager.scrapCount}</strong>`;
+        container.appendChild(scrapDisplay);
+
 
         // --- 1. 合成実行ボタンエリア ---
         const combineBtnText = `合成を実行 (${this.selectedFragmentIds.length}/3)`;
@@ -708,7 +795,11 @@ class GameController {
                 fDiv.draggable = true;
 
                 fDiv.ondragstart = (e) => {
-                    e.dataTransfer.setData('text/plain', frag.uniqueId);
+                    const dragData = {
+                        source: 'list',
+                        uniqueId: String(frag.uniqueId)
+                    };
+                    e.dataTransfer.setData("text/plain", JSON.stringify(dragData));
                 };
 
                 fDiv.style = `
@@ -835,6 +926,120 @@ class GameController {
         });
 
         container.appendChild(scrollBox);
+    }
+
+    handleDropFragment(event, destCharaId, destSkillIdx, destSlotIdx) {
+        event.preventDefault();
+        const dataText = event.dataTransfer.getData("text/plain");
+        if (!dataText) return;
+
+        try {
+            const data = JSON.parse(dataText);
+
+            if (data.source === 'slot') {
+                // スロット → スロット (5)
+                this.moveSlotToSlot(data, { charaId: destCharaId, skillIndex: destSkillIdx, slotIndex: destSlotIdx });
+            } else if (data.type === 'fromKeep') {
+                // キープ → スロット (3)
+                this.moveKeepToSlot(data.keepIndex, destCharaId, destSkillIdx, destSlotIdx);
+            } else if (data.source === 'list') {
+                // リスト → スロット (1)
+                this.attachFragmentToSlot(data.uniqueId, destCharaId, destSkillIdx, destSlotIdx);
+            }
+        } catch (e) {
+            // 文字列のみが送られてきた場合（古い実装や単純なID送信の互換性）
+            this.attachFragmentToSlot(dataText, destCharaId, destSkillIdx, destSlotIdx);
+        }
+    }
+
+    /**
+ * かけらの移動管理メソッド群
+ */
+
+    // 1. リスト → スロット (gameApp.attachFragmentToSelectedSlot を整理)
+    attachFragmentToSlot(fragmentUniqueId, charaId, skillIndex, slotIndex) {
+        const chara = this.party.find(c => String(c.id) === String(charaId));
+        if (!chara || !chara.skills[skillIndex]) return;
+
+        // リストから削除して取得
+        const fragIdx = this.skillManager.fragments.findIndex(f => String(f.uniqueId) === String(fragmentUniqueId));
+        if (fragIdx === -1) return;
+
+        const fragment = this.skillManager.fragments.splice(fragIdx, 1)[0];
+
+        // スロットに装着（既存があればリストに戻す）
+        const oldFrag = chara.skills[skillIndex].slots[slotIndex];
+        if (oldFrag) this.skillManager.fragments.push(oldFrag);
+
+        chara.skills[skillIndex].slots[slotIndex] = fragment;
+        this.selectedSlot = null; // 選択状態解除
+        this.saveAndRefresh();
+    }
+
+    // 2. リスト → キープエリア (handleMoveToKeep の一部)
+    moveListToKeep(fragmentUniqueId, keepIndex) {
+        if (this.keepFragments[keepIndex]) return; // 空きがない場合は何もしない
+
+        const idx = this.skillManager.fragments.findIndex(f => String(f.uniqueId) === String(fragmentUniqueId));
+        if (idx !== -1) {
+            const fragment = this.skillManager.fragments.splice(idx, 1)[0];
+            this.keepFragments[keepIndex] = fragment;
+            this.saveAndRefresh();
+        }
+    }
+
+    // 3. キープエリア → スロット
+    moveKeepToSlot(keepIndex, charaId, skillIndex, slotIndex) {
+        const chara = this.party.find(c => String(c.id) === String(charaId));
+        if (!chara || !chara.skills[skillIndex]) return;
+
+        const fragment = this.keepFragments[keepIndex];
+        if (!fragment) return;
+
+        // スロットの既存品をリストへ退避
+        const oldFrag = chara.skills[skillIndex].slots[slotIndex];
+        if (oldFrag) this.skillManager.fragments.push(oldFrag);
+
+        chara.skills[skillIndex].slots[slotIndex] = fragment;
+        this.keepFragments[keepIndex] = null;
+        this.saveAndRefresh();
+    }
+
+    // 4. スロット → キープエリア
+    moveSlotToKeep(charaId, skillIndex, slotIndex, keepIndex) {
+        if (this.keepFragments[keepIndex]) return; // 移動先が埋まっていれば中止
+
+        const chara = this.party.find(c => String(c.id) === String(charaId));
+        if (!chara) return;
+
+        const fragment = chara.skills[skillIndex].slots[slotIndex];
+        if (fragment) {
+            this.keepFragments[keepIndex] = fragment;
+            chara.skills[skillIndex].slots[slotIndex] = null;
+            this.saveAndRefresh();
+        }
+    }
+
+    // 5. スロット → スロット
+    moveSlotToSlot(src, dest) {
+        const srcChara = this.party.find(c => String(c.id) === String(src.charaId));
+        const destChara = this.party.find(c => String(c.id) === String(dest.charaId));
+        if (!srcChara || !destChara) return;
+
+        const srcFrag = srcChara.skills[src.skillIndex].slots[src.slotIndex];
+        const destFrag = destChara.skills[dest.skillIndex].slots[dest.slotIndex];
+
+        // 入れ替え
+        destChara.skills[dest.skillIndex].slots[dest.slotIndex] = srcFrag;
+        srcChara.skills[src.skillIndex].slots[src.slotIndex] = destFrag;
+
+        this.saveAndRefresh();
+    }
+
+    // 補助：保存と再描画を一括で行う
+    saveAndRefresh() {
+        this.saveGame();
+        this.renderEquipScene();
     }
 
     changeSkillPriority(charaId, skillIndex, priorityValue) {
@@ -1022,12 +1227,6 @@ class GameController {
                 alert(result.message);
             }
         };
-    }
-
-    handleDropFragment(e, charaId, skillIndex, slotIndex) {
-        e.preventDefault();
-        const fragmentUniqueId = e.dataTransfer.getData('text/plain');
-        this.executeAttachFragment(charaId, skillIndex, slotIndex, fragmentUniqueId);
     }
 
     // かけらのロック状態を切り替える
