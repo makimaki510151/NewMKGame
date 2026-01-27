@@ -156,7 +156,6 @@ class BattleSystem {
         const baseStats = isPlayer ? chara.stats : chara;
         const buffs = chara.battleBuffs || { pAtk: 1, pDef: 1, mAtk: 1, mDef: 1, spd: 1 };
 
-        // Bonusがundefinedにならないよう確保
         const nextBonus = chara.nextDamageBonus || 0;
 
         const aStats = {
@@ -190,13 +189,12 @@ class BattleSystem {
             dBase.hp = Math.min(targetMaxHp, dBase.hp + healAmt);
             log = `${chara.name}の[${skill.name}]！ ${target.data.name}のHPが ${healAmt} 回復。`;
         } else {
-            // nextBonusを加算。計算式全体がNaNにならないようMath.max(1, ...)でガード
             let dmg = (skill.type === "physical")
                 ? (aStats.pAtk * (powerMult + nextBonus) / Math.max(1, dStats.pDef))
                 : (aStats.mAtk * (powerMult + nextBonus) / Math.max(1, dStats.mDef));
 
             dmg = Math.floor(dmg);
-            chara.nextDamageBonus = 0; // ボーナス消費
+            chara.nextDamageBonus = 0;
 
             if (target.data.damageImmuneCount > 0) {
                 dmg = 0;
@@ -207,13 +205,11 @@ class BattleSystem {
                 dBase.hp -= dmg;
                 log = `${chara.name}の[${skill.name}]！ ${target.data.name}に ${dmg} のダメージ！`;
 
-                // 死亡ログの追加
                 if (dBase.hp <= 0) {
                     dBase.hp = 0;
                     log += ` ${target.data.name}は倒れた！`;
                 }
 
-                // 【追加】真・残像のマーク付与
                 if (skill.markEcho) {
                     target.data.markedBy = actor;
                     log += ` ${target.data.name}をマークした！`;
@@ -236,18 +232,29 @@ class BattleSystem {
             }
         }
 
+        // 瞑想の効果: 減少体力の20%回復（1つでもあれば発動）
+        if (skill.healSelf) {
+            const lostHp = currentMaxHp - baseStats.hp;
+            if (lostHp > 0) {
+                const healAmt = Math.floor(lostHp * 0.2);
+                baseStats.hp = Math.min(currentMaxHp, baseStats.hp + healAmt);
+                log += ` ${chara.name}は瞑想により ${healAmt} 回復！`;
+            }
+        }
+
+        // 自傷処理とHP表示バグ修正
         if (skill.selfDamage && skill.selfDamage > 0) {
-            const stats = isPlayer ? chara.stats : chara;
-            const maxHp = isPlayer ? chara.currentMaxHp : (chara.maxHp || chara.hp);
+            const selfDmg = Math.floor(currentMaxHp * skill.selfDamage);
 
-            const selfDmg = Math.floor(maxHp * skill.selfDamage);
-            stats.hp = Math.max(1, stats.hp - selfDmg);
+            // 内部HPを先に更新。自傷では死なない(最小1)
+            baseStats.hp = Math.max(1, baseStats.hp - selfDmg);
 
+            // 更新後の確定したHPをログに出す
             if (log) {
-                log += ` (反動で ${selfDmg} ダメージ！)`;
+                log += ` (反動で ${selfDmg} ダメージ！ 残りHP: ${baseStats.hp})`;
             }
 
-            if (skill.berserkImmune && maxHp * skill.berserkImmune <= selfDmg) {
+            if (skill.berserkImmune && currentMaxHp * skill.berserkImmune <= selfDmg) {
                 chara.nextDamageBonus = (chara.nextDamageBonus || 0) + selfDmg * 0.01;
                 log += ` (【真・諸刃】条件通過)`;
             }
@@ -260,17 +267,15 @@ class BattleSystem {
         }
         if (skill.resetHate && target.type === 'player') target.data.currentHate = 0;
 
-        // 【追加】真・残像の追撃発動チェック（味方がマークされた敵を攻撃した場合）
         if (target.data.markedBy && target.data.markedBy.type === actor.type && target.data.markedBy !== actor) {
             const shader = target.data.markedBy;
-            const echoResult = this.executeFollowUp(shader, skill, allUnits, 1.0); // 100%発動
+            const echoResult = this.executeFollowUp(shader, skill, allUnits, 1.0);
             if (echoResult.log) log += ` [残像追撃] ${echoResult.log}`;
         }
         else {
             const followUp = this.executeFollowUp(actor, skill, allUnits);
             if (followUp.log) log += " " + followUp.log;
         }
-
 
         return { log };
     }
@@ -364,7 +369,7 @@ class BattleSystem {
                 currentLog += ` ${target.data.name}は倒れた！`;
             }
         }
-        
+
         // chainDoubleが存在する場合、次回の判定へ
         if (skill.chainDouble) {
             const next = this.executeFollowUp(actor, skill, allUnits, chance);
